@@ -23,6 +23,24 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         playerView.controlsStyle = .inline
         playerView.showsFullScreenToggleButton = true
         self.view = playerView
+
+        // Set preferredContentSize early so Quick Look sizes the window correctly.
+        // Quick Look reads preferredContentSize before preparePreviewOfFile completes,
+        // so we must set it here. Use a 16:9 default that fits the screen.
+        let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1920, height: 1080)
+        let maxWidth = screenFrame.width - 120
+        let maxHeight = screenFrame.height - 120
+        let defaultAspect: CGFloat = 16.0 / 9.0
+        let scaledWidth: CGFloat
+        let scaledHeight: CGFloat
+        if maxWidth / maxHeight > defaultAspect {
+            scaledHeight = maxHeight
+            scaledWidth = maxHeight * defaultAspect
+        } else {
+            scaledWidth = maxWidth
+            scaledHeight = maxWidth / defaultAspect
+        }
+        self.preferredContentSize = NSSize(width: scaledWidth, height: scaledHeight)
     }
 
     override func viewDidAppear() {
@@ -32,12 +50,21 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         // - Quick Look pop-up window: window.level > 0 (floating panel)
         // Only auto-play in the pop-up window, not the Finder column.
         if let window = self.view.window, !hasAutoPlayed {
+            qlLogger.info("viewDidAppear: window.frame=\(NSStringFromRect(window.frame), privacy: .public), window.level=\(window.level.rawValue, privacy: .public)")
+            qlLogger.info("viewDidAppear: view.frame=\(NSStringFromRect(self.view.frame), privacy: .public), playerView.frame=\(NSStringFromRect(self.playerView.frame), privacy: .public)")
+            qlLogger.info("viewDidAppear: playerView.bounds=\(NSStringFromRect(self.playerView.bounds), privacy: .public), playerView.videoBounds=\(NSStringFromRect(self.playerView.videoBounds), privacy: .public)")
+            qlLogger.info("viewDidAppear: preferredContentSize=\(NSStringFromSize(self.preferredContentSize), privacy: .public)")
             if window.level.rawValue > 0 {
                 hasAutoPlayed = true
                 player?.play()
                 qlLogger.info("Auto-playing in Quick Look pop-up window")
             }
         }
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        qlLogger.info("viewDidLayout: view.frame=\(NSStringFromRect(self.view.frame), privacy: .public), playerView.frame=\(NSStringFromRect(self.playerView.frame), privacy: .public), playerView.videoBounds=\(NSStringFromRect(self.playerView.videoBounds), privacy: .public)")
     }
 
     override func viewWillDisappear() {
@@ -95,6 +122,34 @@ class PreviewViewController: NSViewController, QLPreviewingController {
 
             self.player = avPlayer
             self.playerView.player = avPlayer
+
+            // Set preferredContentSize synchronously using the legacy API.
+            // The async load API causes preferredContentSize to be set too late —
+            // after Quick Look has already sized the window.
+            // AVAssetTrack.naturalSize and .preferredTransform are synchronous on local files.
+            if let videoTrack = avAsset.tracks(withMediaType: .video).first {
+                let naturalSize = videoTrack.naturalSize
+                let transform = videoTrack.preferredTransform
+                let displaySize = CGSize(
+                    width: abs(transform.a) * naturalSize.width + abs(transform.c) * naturalSize.height,
+                    height: abs(transform.b) * naturalSize.width + abs(transform.d) * naturalSize.height
+                )
+                let videoAspect = displaySize.width / displaySize.height
+                let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1920, height: 1080)
+                let maxWidth = screenFrame.width - 120
+                let maxHeight = screenFrame.height - 120
+                let scaledWidth: CGFloat
+                let scaledHeight: CGFloat
+                if maxWidth / maxHeight > videoAspect {
+                    scaledHeight = maxHeight
+                    scaledWidth = maxHeight * videoAspect
+                } else {
+                    scaledWidth = maxWidth
+                    scaledHeight = maxWidth / videoAspect
+                }
+                self.preferredContentSize = NSSize(width: scaledWidth, height: scaledHeight)
+                qlLogger.info("Video display: \(displaySize.width, privacy: .public)x\(displaySize.height, privacy: .public), screen: \(NSStringFromSize(screenFrame.size), privacy: .public), preferredContentSize: \(scaledWidth, privacy: .public)x\(scaledHeight, privacy: .public)")
+            }
 
             qlLogger.info("Quick Look preview ready, waiting for window context")
         } catch let error as SVPError {
