@@ -128,13 +128,12 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             self.player = avPlayer
             self.playerView.player = avPlayer
 
-            // Set preferredContentSize synchronously using the legacy API.
-            // The async load API causes preferredContentSize to be set too late —
-            // after Quick Look has already sized the window.
-            // AVAssetTrack.naturalSize and .preferredTransform are synchronous on local files.
-            if let videoTrack = avAsset.tracks(withMediaType: .video).first {
-                let naturalSize = videoTrack.naturalSize
-                let transform = videoTrack.preferredTransform
+            // Refine preferredContentSize with actual video dimensions.
+            // loadView() sets a 16:9 default so Quick Look sizes the window early;
+            // this corrects the aspect ratio for non-16:9 videos.
+            if let videoTrack = try await avAsset.loadTracks(withMediaType: .video).first {
+                let naturalSize = try await videoTrack.load(.naturalSize)
+                let transform = try await videoTrack.load(.preferredTransform)
                 let displaySize = CGSize(
                     width: abs(transform.a) * naturalSize.width + abs(transform.c) * naturalSize.height,
                     height: abs(transform.b) * naturalSize.width + abs(transform.d) * naturalSize.height
