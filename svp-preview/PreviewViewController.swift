@@ -3,9 +3,6 @@ import Quartz
 import AVKit
 import AVFoundation
 import SVPReader
-import os
-
-private let qlLogger = Logger(subsystem: "com.cueit.svp-system-support", category: "QuickLook")
 
 class PreviewViewController: NSViewController, QLPreviewingController {
 
@@ -13,6 +10,17 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private var player: AVPlayer?
     private var tempDir: URL?
     private var hasAutoPlayed = false
+    private var visibilityTimer: Timer?
+    private var wasVisibleInPopup = false
+
+    deinit {
+        visibilityTimer?.invalidate()
+        player?.pause()
+        player = nil
+        if let tempDir {
+            SVPReader.cleanupMaterializedMedia(at: tempDir)
+        }
+    }
 
     override var nibName: NSNib.Name? {
         return NSNib.Name("PreviewViewController")
@@ -50,56 +58,55 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         // - Quick Look pop-up window: window.level > 0 (floating panel)
         // Only auto-play in the pop-up window, not the Finder column.
         if let window = self.view.window, !hasAutoPlayed {
-            qlLogger.info("viewDidAppear: window.frame=\(NSStringFromRect(window.frame), privacy: .public), window.level=\(window.level.rawValue, privacy: .public)")
-            qlLogger.info("viewDidAppear: view.frame=\(NSStringFromRect(self.view.frame), privacy: .public), playerView.frame=\(NSStringFromRect(self.playerView.frame), privacy: .public)")
-            qlLogger.info("viewDidAppear: playerView.bounds=\(NSStringFromRect(self.playerView.bounds), privacy: .public), playerView.videoBounds=\(NSStringFromRect(self.playerView.videoBounds), privacy: .public)")
-            qlLogger.info("viewDidAppear: preferredContentSize=\(NSStringFromSize(self.preferredContentSize), privacy: .public)")
             if window.level.rawValue > 0 {
                 hasAutoPlayed = true
+                wasVisibleInPopup = true
                 player?.play()
-                qlLogger.info("Auto-playing in Quick Look pop-up window")
+
+                // Quick Look does not call viewWillDisappear/viewDidDisappear when the user
+                // navigates to a different file with arrow keys. The only reliable way to detect
+                // that our preview is no longer the active one is to poll window.level.
+                // When Quick Look switches to a different file type, it swaps in a different
+                // extension's view controller, and our window.level drops to 0 or the window
+                // changes. This is a known limitation confirmed by multiple developers.
+                // Reference: https://stackoverflow.com/questions/71555582
+                visibilityTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+                    guard let self = self else { return }
+                    let isActive = self.view.window?.level.rawValue ?? 0 > 0
+                    if self.wasVisibleInPopup && !isActive {
+                        self.wasVisibleInPopup = false
+                        self.player?.pause()
+                    } else if !self.wasVisibleInPopup && isActive {
+                        self.wasVisibleInPopup = true
+                        self.player?.play()
+                    }
+                }
             }
         }
     }
 
-    override func viewDidLayout() {
-        super.viewDidLayout()
-        qlLogger.info("viewDidLayout: view.frame=\(NSStringFromRect(self.view.frame), privacy: .public), playerView.frame=\(NSStringFromRect(self.playerView.frame), privacy: .public), playerView.videoBounds=\(NSStringFromRect(self.playerView.videoBounds), privacy: .public)")
-    }
-
     override func viewWillDisappear() {
         super.viewWillDisappear()
-        // Pause immediately when the Quick Look panel closes.
-        // viewWillDisappear is not always called promptly in Quick Look extensions,
-        // but when it is, we want to stop playback instantly.
         player?.pause()
-        qlLogger.info("Quick Look preview disappearing, paused playback")
     }
 
     override func viewDidDisappear() {
         super.viewDidDisappear()
-        // Fully tear down the player to release file handles on the temp media.
+        visibilityTimer?.invalidate()
+        visibilityTimer = nil
         player?.pause()
         player = nil
         playerView.player = nil
-        qlLogger.info("Quick Look preview disappeared, tore down player")
     }
 
     func preparePreviewOfFile(at url: URL) async throws {
-        qlLogger.info("Quick Look preview requested for: \(url.path, privacy: .public)")
-
         do {
             let reader = try SVPReader(url: url)
             try reader.validateSVP()
 
-            let manifest = try? reader.readManifest()
-            qlLogger.info("SVP manifest: package=\(manifest?.packageID ?? "?", privacy: .public)")
-
             let mediaInfo = try reader.locatePrimaryMediaAsset()
-            qlLogger.info("Primary media: \(mediaInfo.mediaPath, privacy: .public), ext=\(mediaInfo.fileExtension, privacy: .public)")
 
             guard mediaInfo.likelyPlayableByAVFoundation else {
-                qlLogger.error("Media not likely playable by AVFoundation: \(mediaInfo.fileExtension, privacy: .public)")
                 showError("Unsupported codec: \(mediaInfo.fileExtension)")
                 return
             }
@@ -113,8 +120,6 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             try mediaData.write(to: mediaURL)
 
             self.tempDir = dir
-
-            qlLogger.info("Materialized \(mediaData.count) bytes to \(mediaURL.path, privacy: .public)")
 
             let avAsset = AVURLAsset(url: mediaURL)
             let playerItem = AVPlayerItem(asset: avAsset)
@@ -148,15 +153,10 @@ class PreviewViewController: NSViewController, QLPreviewingController {
                     scaledHeight = maxWidth / videoAspect
                 }
                 self.preferredContentSize = NSSize(width: scaledWidth, height: scaledHeight)
-                qlLogger.info("Video display: \(displaySize.width, privacy: .public)x\(displaySize.height, privacy: .public), screen: \(NSStringFromSize(screenFrame.size), privacy: .public), preferredContentSize: \(scaledWidth, privacy: .public)x\(scaledHeight, privacy: .public)")
             }
-
-            qlLogger.info("Quick Look preview ready, waiting for window context")
         } catch let error as SVPError {
-            qlLogger.error("SVP error: \(String(describing: error), privacy: .public)")
             showError(String(describing: error))
         } catch {
-            qlLogger.error("Unexpected error: \(String(describing: error), privacy: .public)")
             showError("I/O error: \(String(describing: error))")
         }
     }
@@ -175,13 +175,5 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
         ])
-    }
-
-    deinit {
-        player?.pause()
-        player = nil
-        if let tempDir {
-            SVPReader.cleanupMaterializedMedia(at: tempDir)
-        }
     }
 }
