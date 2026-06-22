@@ -57,9 +57,9 @@
 			<key>CFBundleTypeName</key>
 			<string>Semantic Video Package</string>
 			<key>CFBundleTypeRole</key>
-			<string>None</string>
+			<string>Viewer</string>
 			<key>LSHandlerRank</key>
-			<string>None</string>
+			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>com.semanticvideo.svp</string>
@@ -78,6 +78,7 @@
 				<string>com.apple.mediaextension-content</string>
 				<string>public.movie</string>
 				<string>public.audiovisual-content</string>
+				<string>public.data</string>
 			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>

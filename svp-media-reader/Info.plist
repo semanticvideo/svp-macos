@@ -33,7 +33,7 @@
 				<string>com.apple.mediaextension-content</string>
 				<string>public.movie</string>
 				<string>public.audiovisual-content</string>
-				<string>public.zip-archive</string>
+				<string>public.data</string>
 			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
