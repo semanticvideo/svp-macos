@@ -57,9 +57,9 @@
 			<key>CFBundleTypeName</key>
 			<string>Semantic Video Package</string>
 			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
+			<string>None</string>
 			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<string>None</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>com.semanticvideo.svp</string>
