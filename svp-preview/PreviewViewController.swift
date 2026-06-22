@@ -40,6 +40,24 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         }
     }
 
+    override func viewWillDisappear() {
+        super.viewWillDisappear()
+        // Pause immediately when the Quick Look panel closes.
+        // viewWillDisappear is not always called promptly in Quick Look extensions,
+        // but when it is, we want to stop playback instantly.
+        player?.pause()
+        qlLogger.info("Quick Look preview disappearing, paused playback")
+    }
+
+    override func viewDidDisappear() {
+        super.viewDidDisappear()
+        // Fully tear down the player to release file handles on the temp media.
+        player?.pause()
+        player = nil
+        playerView.player = nil
+        qlLogger.info("Quick Look preview disappeared, tore down player")
+    }
+
     func preparePreviewOfFile(at url: URL) async throws {
         qlLogger.info("Quick Look preview requested for: \(url.path, privacy: .public)")
 
@@ -105,6 +123,8 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     }
 
     deinit {
+        player?.pause()
+        player = nil
         if let tempDir {
             SVPReader.cleanupMaterializedMedia(at: tempDir)
         }
