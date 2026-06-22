@@ -12,6 +12,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
     private var playerView: AVPlayerView!
     private var player: AVPlayer?
     private var tempDir: URL?
+    private var hasAutoPlayed = false
 
     override var nibName: NSNib.Name? {
         return NSNib.Name("PreviewViewController")
@@ -22,6 +23,21 @@ class PreviewViewController: NSViewController, QLPreviewingController {
         playerView.controlsStyle = .inline
         playerView.showsFullScreenToggleButton = true
         self.view = playerView
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        // Quick Look has two contexts:
+        // - Finder column preview: window.level == 0 (embedded in Finder)
+        // - Quick Look pop-up window: window.level > 0 (floating panel)
+        // Only auto-play in the pop-up window, not the Finder column.
+        if let window = self.view.window, !hasAutoPlayed {
+            if window.level.rawValue > 0 {
+                hasAutoPlayed = true
+                player?.play()
+                qlLogger.info("Auto-playing in Quick Look pop-up window")
+            }
+        }
     }
 
     func preparePreviewOfFile(at url: URL) async throws {
@@ -62,9 +78,7 @@ class PreviewViewController: NSViewController, QLPreviewingController {
             self.player = avPlayer
             self.playerView.player = avPlayer
 
-            avPlayer.play()
-
-            qlLogger.info("Quick Look preview ready, playback started")
+            qlLogger.info("Quick Look preview ready, waiting for window context")
         } catch let error as SVPError {
             qlLogger.error("SVP error: \(String(describing: error), privacy: .public)")
             showError(String(describing: error))
