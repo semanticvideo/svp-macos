@@ -440,6 +440,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		8E5F82222FE8D000008F9F09 /* Embed Extensions */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);

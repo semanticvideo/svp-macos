@@ -7,7 +7,7 @@
 		<key>NSExtensionAttributes</key>
 		<dict>
 			<key>QLIsDataBasedPreview</key>
-			<false/>
+			<true/>
 			<key>QLSupportedContentTypes</key>
 			<array>
 				<string>com.semanticvideo.svp</string>
@@ -18,7 +18,7 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.quicklook.preview</string>
 		<key>NSExtensionPrincipalClass</key>
-		<string>$(PRODUCT_MODULE_NAME).PreviewViewController</string>
+		<string>$(PRODUCT_MODULE_NAME).PreviewProvider</string>
 	</dict>
 </dict>
 </plist>
