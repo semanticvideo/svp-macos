@@ -34,7 +34,9 @@ final class SVPTrackReader: NSObject, METrackReader {
             let timeRange = try await self.avTrack.load(.timeRange)
             self.minFrameDuration = minFrameDuration
             self.totalDuration = timeRange.duration
-            self.formatDescription = formatDescs.first as! CMFormatDescription
+            if let firstDesc = formatDescs.first {
+                self.formatDescription = firstDesc
+            }
         } catch {
             svpMEReaderLogger.error("loadTrackProperties error: \(String(describing: error), privacy: .public)")
         }
