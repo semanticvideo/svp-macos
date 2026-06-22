@@ -120,6 +120,36 @@ public final class SVPReader: @unchecked Sendable {
         return try zipReader.readEntry(mediaInfo.mediaPath)
     }
 
+    public func readTranscriptText() throws -> String {
+        let entryName = "transcript/words.jsonl"
+        guard zipReader.hasEntry(entryName) else {
+            throw SVPError.ioError("No transcript words found")
+        }
+
+        let data = try zipReader.readEntry(entryName)
+        guard let jsonLines = String(data: data, encoding: .utf8) else {
+            throw SVPError.ioError("Transcript words are not UTF-8")
+        }
+
+        let words = jsonLines
+            .split(whereSeparator: \.isNewline)
+            .compactMap { line -> String? in
+                guard let data = String(line).data(using: .utf8),
+                      let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let text = object["text"] as? String
+                else {
+                    return nil
+                }
+                return text
+            }
+
+        guard !words.isEmpty else {
+            throw SVPError.ioError("Transcript is empty")
+        }
+
+        return words.joined(separator: " ")
+    }
+
     public func materializePrimaryMedia(to directory: URL? = nil) throws -> URL {
         let mediaInfo = try locatePrimaryMediaAsset()
 
