@@ -4,7 +4,12 @@ import XCTest
 final class SVPReaderTests: XCTestCase {
 
     var sampleSVPURL: URL {
-        URL(fileURLWithPath: "/Users/domesposito/Projects/svp/build/local-code-svp/CODE.svp")
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("svp-system-supportTests/Resources/SVP-TEST.svp")
     }
 
     func testOpenAndValidateSVP() throws {
@@ -16,7 +21,7 @@ final class SVPReaderTests: XCTestCase {
         let reader = try SVPReader(url: sampleSVPURL)
         let manifest = try reader.readManifest()
         XCTAssertEqual(manifest.svpVersion, "1.0-rc.2")
-        XCTAssertEqual(manifest.packageID, "svp_CODE_pkg")
+        XCTAssertEqual(manifest.packageID, "svp_SVP-TEST_pkg")
         XCTAssertEqual(manifest.primaryMediaID, "media_000001")
     }
 
