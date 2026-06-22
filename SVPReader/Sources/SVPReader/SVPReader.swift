@@ -1,0 +1,183 @@
+import Foundation
+import os
+
+public enum SVPLog {
+    private static let subsystem = "com.cueit.svp-system-support"
+    private static let logger = Logger(subsystem: subsystem, category: "SVPReader")
+
+    static func debug(_ message: String) {
+        #if DEBUG
+        logger.debug("\(message, privacy: .public)")
+        #endif
+    }
+
+    static func info(_ message: String) {
+        logger.info("\(message, privacy: .public)")
+    }
+
+    static func error(_ message: String) {
+        logger.error("\(message, privacy: .public)")
+    }
+}
+
+public final class SVPReader: @unchecked Sendable {
+    private let url: URL
+    private let zipReader: ZipReader
+
+    public init(url: URL) throws {
+        self.url = url
+        SVPLog.debug("Opening SVP: \(url.path)")
+        self.zipReader = try ZipReader(url: url)
+    }
+
+    public func validateSVP() throws {
+        guard zipReader.hasEntry("mimetype") else {
+            throw SVPError.notSVPFile("No mimetype entry found")
+        }
+
+        let mimeData = try zipReader.readEntry("mimetype")
+        guard let mime = String(data: mimeData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+            throw SVPError.notSVPFile("Cannot read mimetype")
+        }
+
+        guard mime == "application/vnd.svp+zip" else {
+            throw SVPError.notSVPFile("Unexpected mimetype: \(mime)")
+        }
+
+        guard zipReader.hasEntry("manifest.json") else {
+            throw SVPError.manifestReadFailed("No manifest.json found")
+        }
+
+        SVPLog.debug("SVP validated: mimetype OK, manifest present")
+    }
+
+    public func readManifest() throws -> SVPManifestInfo {
+        let data = try zipReader.readEntry("manifest.json")
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw SVPError.manifestParseFailed("JSON parse failed")
+        }
+
+        let svpVersion = json["svp_version"] as? String ?? ""
+        let packageID = json["package_id"] as? String ?? ""
+        let createdUTC = json["created_utc"] as? String ?? ""
+        let primaryMediaID = json["primary_media_id"] as? String ?? ""
+
+        var timebaseUnit = ""
+        var timebaseOrigin = ""
+        if let timebase = json["timebase"] as? [String: Any] {
+            timebaseUnit = timebase["unit"] as? String ?? ""
+            timebaseOrigin = timebase["origin"] as? String ?? ""
+        }
+
+        return SVPManifestInfo(
+            svpVersion: svpVersion,
+            packageID: packageID,
+            createdUTC: createdUTC,
+            primaryMediaID: primaryMediaID,
+            timebaseUnit: timebaseUnit,
+            timebaseOrigin: timebaseOrigin
+        )
+    }
+
+    public func locatePrimaryMediaAsset() throws -> SVPMediaInfo {
+        let _ = try readManifest()
+
+        let mediaEntries = zipReader.entryNames.filter { name in
+            name.hasPrefix("media/original/") && !name.hasSuffix("/")
+        }
+
+        guard !mediaEntries.isEmpty else {
+            throw SVPError.noMediaFound("No files in media/original/")
+        }
+
+        let primaryEntry: String
+        if mediaEntries.count == 1 {
+            primaryEntry = mediaEntries[0]
+        } else {
+            let candidates = mediaEntries.sorted()
+            primaryEntry = candidates[0]
+            SVPLog.info("Multiple media files found, selecting first: \(primaryEntry)")
+        }
+
+        guard let entryInfo = zipReader.entryInfo(primaryEntry) else {
+            throw SVPError.noMediaFound("Cannot get info for \(primaryEntry)")
+        }
+
+        let fileName = (primaryEntry as NSString).lastPathComponent
+        let ext = (fileName as NSString).pathExtension
+
+        return SVPMediaInfo(
+            mediaPath: primaryEntry,
+            mediaFileName: fileName,
+            fileExtension: ext,
+            uncompressedSize: entryInfo.uncompressedSize,
+            compressionMethod: entryInfo.compressionMethod,
+            localHeaderOffset: entryInfo.localHeaderOffset
+        )
+    }
+
+    public func readMediaData(_ mediaInfo: SVPMediaInfo) throws -> Data {
+        return try zipReader.readEntry(mediaInfo.mediaPath)
+    }
+
+    public func materializePrimaryMedia(to directory: URL? = nil) throws -> URL {
+        let mediaInfo = try locatePrimaryMediaAsset()
+
+        let tempDir: URL
+        if let directory {
+            tempDir = directory
+        } else {
+            tempDir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("svp-media-\(UUID().uuidString)", isDirectory: true)
+        }
+
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let destURL = tempDir.appendingPathComponent(mediaInfo.mediaFileName)
+
+        SVPLog.info("Materializing \(mediaInfo.mediaPath) to \(destURL.path)")
+
+        let mediaData = try zipReader.readEntry(mediaInfo.mediaPath)
+        try mediaData.write(to: destURL)
+
+        SVPLog.info("Materialization complete: \(mediaData.count) bytes")
+
+        return destURL
+    }
+
+    public func returnMediaInfo() throws -> (SVPManifestInfo?, SVPMediaInfo) {
+        let manifest = try? readManifest()
+        let mediaInfo = try locatePrimaryMediaAsset()
+        return (manifest, mediaInfo)
+    }
+
+    public func openAndMaterialize() throws -> SVPReadResult {
+        try validateSVP()
+
+        let manifest = try? readManifest()
+        let mediaInfo = try locatePrimaryMediaAsset()
+
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("svp-media-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let destURL = tempDir.appendingPathComponent(mediaInfo.mediaFileName)
+        let mediaData = try zipReader.readEntry(mediaInfo.mediaPath)
+        try mediaData.write(to: destURL)
+
+        SVPLog.info("SVP opened and materialized: \(destURL.path)")
+
+        return SVPReadResult(
+            manifest: manifest,
+            mediaInfo: mediaInfo,
+            mediaURL: destURL,
+            isMaterialized: true,
+            tempDir: tempDir
+        )
+    }
+
+    public static func cleanupMaterializedMedia(at tempDir: URL) {
+        try? FileManager.default.removeItem(at: tempDir)
+        SVPLog.debug("Cleaned up temp dir: \(tempDir.path)")
+    }
+}

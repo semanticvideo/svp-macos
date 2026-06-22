@@ -1,0 +1,989 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		8E5F80802FE8B33E008F9F09 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E5F807F2FE8B33E008F9F09 /* Quartz.framework */; };
+		8E5F808C2FE8B33E008F9F09 /* svp-preview.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8E5F807D2FE8B33E008F9F09 /* svp-preview.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8E5F82022FE8C100008F9F09 /* SVPReader in Frameworks */ = {isa = PBXBuildFile; productRef = 8E5F82012FE8C100008F9F09 /* SVPReader */; };
+		8E5F82042FE8C100008F9F09 /* SVPReader in Frameworks */ = {isa = PBXBuildFile; productRef = 8E5F82032FE8C100008F9F09 /* SVPReader */; };
+		8E5F82062FE8C100008F9F09 /* MediaExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E5F82052FE8C100008F9F09 /* MediaExtension.framework */; };
+		8E5F82082FE8C100008F9F09 /* svp-media-reader.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8E5F82072FE8C100008F9F09 /* svp-media-reader.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8E5F805C2FE8B2BD008F9F09 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E5F80462FE8B2BB008F9F09 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8E5F804D2FE8B2BB008F9F09;
+			remoteInfo = "svp-system-support";
+		};
+		8E5F80662FE8B2BE008F9F09 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E5F80462FE8B2BB008F9F09 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8E5F804D2FE8B2BB008F9F09;
+			remoteInfo = "svp-system-support";
+		};
+		8E5F808A2FE8B33E008F9F09 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E5F80462FE8B2BB008F9F09 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8E5F807C2FE8B33E008F9F09;
+			remoteInfo = "svp-preview";
+		};
+		8E5F820F2FE8C100008F9F09 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8E5F80462FE8B2BB008F9F09 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8E5F820E2FE8C100008F9F09;
+			remoteInfo = "svp-media-reader";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8E5F80912FE8B33E008F9F09 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 16;
+			files = (
+				8E5F808C2FE8B33E008F9F09 /* svp-preview.appex in Embed Foundation Extensions */,
+				8E5F82082FE8C100008F9F09 /* svp-media-reader.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		8E5F804E2FE8B2BB008F9F09 /* svp-system-support.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "svp-system-support.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E5F805B2FE8B2BD008F9F09 /* svp-system-supportTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "svp-system-supportTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E5F80652FE8B2BD008F9F09 /* svp-system-supportUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "svp-system-supportUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E5F807D2FE8B33E008F9F09 /* svp-preview.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "svp-preview.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E5F807F2FE8B33E008F9F09 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
+		8E5F82052FE8C100008F9F09 /* MediaExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaExtension.framework; path = System/Library/Frameworks/MediaExtension.framework; sourceTree = SDKROOT; };
+		8E5F82072FE8C100008F9F09 /* svp-media-reader.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "svp-media-reader.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8E5F808D2FE8B33E008F9F09 /* Exceptions for "svp-preview" folder in "svp-preview" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8E5F807C2FE8B33E008F9F09 /* svp-preview */;
+		};
+		8E5F820A2FE8C100008F9F09 /* Exceptions for "svp-media-reader" folder in "svp-media-reader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8E5F820E2FE8C100008F9F09 /* svp-media-reader */;
+		};
+		8E5F82142FE8C100008F9F09 /* Exceptions for "svp-system-support" folder in "svp-system-support" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8E5F804D2FE8B2BB008F9F09 /* svp-system-support */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		8E5F80502FE8B2BB008F9F09 /* svp-system-support */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8E5F82142FE8C100008F9F09 /* Exceptions for "svp-system-support" folder in "svp-system-support" target */,
+			);
+			path = "svp-system-support";
+			sourceTree = "<group>";
+		};
+		8E5F805E2FE8B2BD008F9F09 /* svp-system-supportTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "svp-system-supportTests";
+			sourceTree = "<group>";
+		};
+		8E5F80682FE8B2BE008F9F09 /* svp-system-supportUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "svp-system-supportUITests";
+			sourceTree = "<group>";
+		};
+		8E5F80812FE8B33E008F9F09 /* svp-preview */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8E5F808D2FE8B33E008F9F09 /* Exceptions for "svp-preview" folder in "svp-preview" target */,
+			);
+			path = "svp-preview";
+			sourceTree = "<group>";
+		};
+		8E5F82092FE8C100008F9F09 /* svp-media-reader */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8E5F820A2FE8C100008F9F09 /* Exceptions for "svp-media-reader" folder in "svp-media-reader" target */,
+			);
+			path = "svp-media-reader";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8E5F804B2FE8B2BB008F9F09 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F80582FE8B2BD008F9F09 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F80622FE8B2BD008F9F09 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F807A2FE8B33E008F9F09 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8E5F80802FE8B33E008F9F09 /* Quartz.framework in Frameworks */,
+				8E5F82022FE8C100008F9F09 /* SVPReader in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F820C2FE8C100008F9F09 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8E5F82062FE8C100008F9F09 /* MediaExtension.framework in Frameworks */,
+				8E5F82042FE8C100008F9F09 /* SVPReader in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		8E5F80452FE8B2BB008F9F09 = {
+			isa = PBXGroup;
+			children = (
+				8E5F80502FE8B2BB008F9F09 /* svp-system-support */,
+				8E5F805E2FE8B2BD008F9F09 /* svp-system-supportTests */,
+				8E5F80682FE8B2BE008F9F09 /* svp-system-supportUITests */,
+				8E5F80812FE8B33E008F9F09 /* svp-preview */,
+				8E5F82092FE8C100008F9F09 /* svp-media-reader */,
+				8E5F807E2FE8B33E008F9F09 /* Frameworks */,
+				8E5F804F2FE8B2BB008F9F09 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8E5F804F2FE8B2BB008F9F09 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8E5F804E2FE8B2BB008F9F09 /* svp-system-support.app */,
+				8E5F805B2FE8B2BD008F9F09 /* svp-system-supportTests.xctest */,
+				8E5F80652FE8B2BD008F9F09 /* svp-system-supportUITests.xctest */,
+				8E5F807D2FE8B33E008F9F09 /* svp-preview.appex */,
+				8E5F82072FE8C100008F9F09 /* svp-media-reader.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8E5F807E2FE8B33E008F9F09 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8E5F807F2FE8B33E008F9F09 /* Quartz.framework */,
+				8E5F82052FE8C100008F9F09 /* MediaExtension.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8E5F804D2FE8B2BB008F9F09 /* svp-system-support */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8E5F806F2FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-support" */;
+			buildPhases = (
+				8E5F804A2FE8B2BB008F9F09 /* Sources */,
+				8E5F804B2FE8B2BB008F9F09 /* Frameworks */,
+				8E5F804C2FE8B2BB008F9F09 /* Resources */,
+				8E5F80912FE8B33E008F9F09 /* Embed Foundation Extensions */,
+				8E5F82222FE8D000008F9F09 /* Embed Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8E5F808B2FE8B33E008F9F09 /* PBXTargetDependency */,
+				8E5F82102FE8C100008F9F09 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				8E5F80502FE8B2BB008F9F09 /* svp-system-support */,
+			);
+			name = "svp-system-support";
+			packageProductDependencies = (
+			);
+			productName = "svp-system-support";
+			productReference = 8E5F804E2FE8B2BB008F9F09 /* svp-system-support.app */;
+			productType = "com.apple.product-type.application";
+		};
+		8E5F805A2FE8B2BD008F9F09 /* svp-system-supportTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8E5F80722FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-supportTests" */;
+			buildPhases = (
+				8E5F80572FE8B2BD008F9F09 /* Sources */,
+				8E5F80582FE8B2BD008F9F09 /* Frameworks */,
+				8E5F80592FE8B2BD008F9F09 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8E5F805D2FE8B2BD008F9F09 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				8E5F805E2FE8B2BD008F9F09 /* svp-system-supportTests */,
+			);
+			name = "svp-system-supportTests";
+			packageProductDependencies = (
+			);
+			productName = "svp-system-supportTests";
+			productReference = 8E5F805B2FE8B2BD008F9F09 /* svp-system-supportTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		8E5F80642FE8B2BD008F9F09 /* svp-system-supportUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8E5F80752FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-supportUITests" */;
+			buildPhases = (
+				8E5F80612FE8B2BD008F9F09 /* Sources */,
+				8E5F80622FE8B2BD008F9F09 /* Frameworks */,
+				8E5F80632FE8B2BD008F9F09 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8E5F80672FE8B2BE008F9F09 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				8E5F80682FE8B2BE008F9F09 /* svp-system-supportUITests */,
+			);
+			name = "svp-system-supportUITests";
+			packageProductDependencies = (
+			);
+			productName = "svp-system-supportUITests";
+			productReference = 8E5F80652FE8B2BD008F9F09 /* svp-system-supportUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		8E5F807C2FE8B33E008F9F09 /* svp-preview */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8E5F808E2FE8B33E008F9F09 /* Build configuration list for PBXNativeTarget "svp-preview" */;
+			buildPhases = (
+				8E5F80792FE8B33E008F9F09 /* Sources */,
+				8E5F807A2FE8B33E008F9F09 /* Frameworks */,
+				8E5F807B2FE8B33E008F9F09 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				8E5F80812FE8B33E008F9F09 /* svp-preview */,
+			);
+			name = "svp-preview";
+			packageProductDependencies = (
+				8E5F82012FE8C100008F9F09 /* SVPReader */,
+			);
+			productName = "svp-preview";
+			productReference = 8E5F807D2FE8B33E008F9F09 /* svp-preview.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		8E5F820E2FE8C100008F9F09 /* svp-media-reader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8E5F82132FE8C100008F9F09 /* Build configuration list for PBXNativeTarget "svp-media-reader" */;
+			buildPhases = (
+				8E5F820B2FE8C100008F9F09 /* Sources */,
+				8E5F820C2FE8C100008F9F09 /* Frameworks */,
+				8E5F820D2FE8C100008F9F09 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				8E5F82092FE8C100008F9F09 /* svp-media-reader */,
+			);
+			name = "svp-media-reader";
+			packageProductDependencies = (
+				8E5F82032FE8C100008F9F09 /* SVPReader */,
+			);
+			productName = "svp-media-reader";
+			productReference = 8E5F82072FE8C100008F9F09 /* svp-media-reader.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8E5F80462FE8B2BB008F9F09 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2640;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					8E5F804D2FE8B2BB008F9F09 = {
+						CreatedOnToolsVersion = 26.4;
+					};
+					8E5F805A2FE8B2BD008F9F09 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = 8E5F804D2FE8B2BB008F9F09;
+					};
+					8E5F80642FE8B2BD008F9F09 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = 8E5F804D2FE8B2BB008F9F09;
+					};
+					8E5F807C2FE8B33E008F9F09 = {
+						CreatedOnToolsVersion = 26.4;
+					};
+					8E5F820E2FE8C100008F9F09 = {
+						CreatedOnToolsVersion = 26.4;
+					};
+				};
+			};
+			buildConfigurationList = 8E5F80492FE8B2BB008F9F09 /* Build configuration list for PBXProject "svp-system-support" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 8E5F80452FE8B2BB008F9F09;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 8E5F804F2FE8B2BB008F9F09 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8E5F804D2FE8B2BB008F9F09 /* svp-system-support */,
+				8E5F805A2FE8B2BD008F9F09 /* svp-system-supportTests */,
+				8E5F80642FE8B2BD008F9F09 /* svp-system-supportUITests */,
+				8E5F807C2FE8B33E008F9F09 /* svp-preview */,
+				8E5F820E2FE8C100008F9F09 /* svp-media-reader */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8E5F804C2FE8B2BB008F9F09 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F80592FE8B2BD008F9F09 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F80632FE8B2BD008F9F09 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F807B2FE8B33E008F9F09 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F820D2FE8C100008F9F09 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		8E5F82222FE8D000008F9F09 /* Embed Extensions */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/svp-preview.appex",
+				"$(BUILT_PRODUCTS_DIR)/svp-media-reader.appex",
+			);
+			name = "Embed Extensions";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Extensions/svp-preview.appex",
+				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Extensions/svp-media-reader.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "mkdir -p \"$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app/Contents/Extensions\"\ncp -R \"$BUILT_PRODUCTS_DIR/svp-preview.appex\" \"$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app/Contents/Extensions/\"\ncp -R \"$BUILT_PRODUCTS_DIR/svp-media-reader.appex\" \"$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app/Contents/Extensions/\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8E5F804A2FE8B2BB008F9F09 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F80572FE8B2BD008F9F09 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F80612FE8B2BD008F9F09 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F80792FE8B33E008F9F09 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8E5F820B2FE8C100008F9F09 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8E5F805D2FE8B2BD008F9F09 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8E5F804D2FE8B2BB008F9F09 /* svp-system-support */;
+			targetProxy = 8E5F805C2FE8B2BD008F9F09 /* PBXContainerItemProxy */;
+		};
+		8E5F80672FE8B2BE008F9F09 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8E5F804D2FE8B2BB008F9F09 /* svp-system-support */;
+			targetProxy = 8E5F80662FE8B2BE008F9F09 /* PBXContainerItemProxy */;
+		};
+		8E5F808B2FE8B33E008F9F09 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8E5F807C2FE8B33E008F9F09 /* svp-preview */;
+			targetProxy = 8E5F808A2FE8B33E008F9F09 /* PBXContainerItemProxy */;
+		};
+		8E5F82102FE8C100008F9F09 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8E5F820E2FE8C100008F9F09 /* svp-media-reader */;
+			targetProxy = 8E5F820F2FE8C100008F9F09 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		8E5F806D2FE8B2BE008F9F09 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		8E5F806E2FE8B2BE008F9F09 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		8E5F80702FE8B2BE008F9F09 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "svp-system-support/svp-system-support.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "svp-system-support/Info.plist";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-support";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		8E5F80712FE8B2BE008F9F09 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "svp-system-support/svp-system-support.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "svp-system-support/Info.plist";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-support";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		8E5F80732FE8B2BE008F9F09 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-supportTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/svp-system-support.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/svp-system-support";
+			};
+			name = Debug;
+		};
+		8E5F80742FE8B2BE008F9F09 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-supportTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/svp-system-support.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/svp-system-support";
+			};
+			name = Release;
+		};
+		8E5F80762FE8B2BE008F9F09 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-supportUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "svp-system-support";
+			};
+			name = Debug;
+		};
+		8E5F80772FE8B2BE008F9F09 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-supportUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "svp-system-support";
+			};
+			name = Release;
+		};
+		8E5F808F2FE8B33E008F9F09 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "svp-preview/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "svp-preview";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-support.svp-preview";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		8E5F80902FE8B33E008F9F09 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "svp-preview/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "svp-preview";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-support.svp-preview";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		8E5F82112FE8C100008F9F09 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "svp-media-reader/svp-media-reader.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "svp-media-reader/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "svp-media-reader";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-support.svp-media-reader";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "svp-media-reader/svp-media-reader-Bridging-Header.h";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		8E5F82122FE8C100008F9F09 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "svp-media-reader/svp-media-reader.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U7YT4DBC54;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "svp-media-reader/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "svp-media-reader";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cueit.svp-system-support.svp-media-reader";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "svp-media-reader/svp-media-reader-Bridging-Header.h";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8E5F80492FE8B2BB008F9F09 /* Build configuration list for PBXProject "svp-system-support" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E5F806D2FE8B2BE008F9F09 /* Debug */,
+				8E5F806E2FE8B2BE008F9F09 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8E5F806F2FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-support" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E5F80702FE8B2BE008F9F09 /* Debug */,
+				8E5F80712FE8B2BE008F9F09 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8E5F80722FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-supportTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E5F80732FE8B2BE008F9F09 /* Debug */,
+				8E5F80742FE8B2BE008F9F09 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8E5F80752FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-supportUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E5F80762FE8B2BE008F9F09 /* Debug */,
+				8E5F80772FE8B2BE008F9F09 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8E5F808E2FE8B33E008F9F09 /* Build configuration list for PBXNativeTarget "svp-preview" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E5F808F2FE8B33E008F9F09 /* Debug */,
+				8E5F80902FE8B33E008F9F09 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8E5F82132FE8C100008F9F09 /* Build configuration list for PBXNativeTarget "svp-media-reader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E5F82112FE8C100008F9F09 /* Debug */,
+				8E5F82122FE8C100008F9F09 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = SVPReader;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8E5F82012FE8C100008F9F09 /* SVPReader */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */;
+			productName = SVPReader;
+		};
+		8E5F82032FE8C100008F9F09 /* SVPReader */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */;
+			productName = SVPReader;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 8E5F80462FE8B2BB008F9F09 /* Project object */;
+}
