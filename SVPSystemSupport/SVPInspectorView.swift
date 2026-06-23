@@ -40,13 +40,53 @@ private func prettyJSON(_ dict: [String: Any]?) -> String {
 
 // MARK: - Table Row Wrapper
 
+private struct SortValue: Comparable {
+    let value: Any?
+
+    static func < (lhs: SortValue, rhs: SortValue) -> Bool {
+        if lhs.value == nil && rhs.value == nil { return false }
+        if lhs.value == nil { return true }
+        if rhs.value == nil { return false }
+
+        if let la = lhs.value as? [Any], let ra = rhs.value as? [Any] {
+            return la.count < ra.count
+        }
+        if let ln = lhs.value as? NSNumber, let rn = rhs.value as? NSNumber {
+            return ln.doubleValue < rn.doubleValue
+        }
+
+        let ls = String(describing: lhs.value!)
+        let rs = String(describing: rhs.value!)
+        return ls < rs
+    }
+
+    static func == (lhs: SortValue, rhs: SortValue) -> Bool {
+        if let ln = lhs.value as? NSNumber, let rn = rhs.value as? NSNumber {
+            return ln.doubleValue == rn.doubleValue
+        }
+        return String(describing: lhs.value ?? "") == String(describing: rhs.value ?? "")
+    }
+}
+
+@dynamicMemberLookup
 private struct InspectorRow: Identifiable {
     let id: Int
     let dict: [String: Any]
+
+    subscript(dynamicMember key: String) -> SortValue {
+        SortValue(value: dict[key])
+    }
+
+    var id_string: SortValue { SortValue(value: dict["id"]) }
 }
 
 private func makeRows(_ array: [[String: Any]]) -> [InspectorRow] {
     array.enumerated().map { InspectorRow(id: $0.offset, dict: $0.element) }
+}
+
+private func sortedRows(_ rows: [InspectorRow], sortOrder: [KeyPathComparator<InspectorRow>]) -> [InspectorRow] {
+    guard !sortOrder.isEmpty else { return rows }
+    return rows.sorted(using: sortOrder)
 }
 
 // MARK: - Reusable Views
@@ -323,6 +363,7 @@ private struct OverviewTab: View {
 
 private struct TranscriptTab: View {
     let data: SVPInspectorData
+    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         if data.transcriptWords.isEmpty && data.transcriptSummary == nil {
@@ -341,26 +382,26 @@ private struct TranscriptTab: View {
                     .padding(.horizontal, 4)
                 }
 
-                let rows = makeRows(data.transcriptWords)
-                Table(rows) {
-                    TableColumn("Text") { row in
+                let rows = sortedRows(makeRows(data.transcriptWords), sortOrder: sortOrder)
+                Table(rows, sortOrder: $sortOrder) {
+                    TableColumn("Text", value: \InspectorRow.text) { row in
                         Text(displayString(row.dict, "text"))
                             .textSelection(.enabled)
                     }
                     .width(min: 80, ideal: 200)
-                    TableColumn("Start (s)") { row in
+                    TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
                         Text(formatMicroseconds(row.dict, "start_us"))
                     }
                     .width(min: 60, ideal: 80)
-                    TableColumn("End (s)") { row in
+                    TableColumn("End (s)", value: \InspectorRow.end_us) { row in
                         Text(formatMicroseconds(row.dict, "end_us"))
                     }
                     .width(min: 60, ideal: 80)
-                    TableColumn("Speaker") { row in
+                    TableColumn("Speaker", value: \InspectorRow.speaker_id) { row in
                         Text(displayString(row.dict, "speaker_id"))
                     }
                     .width(min: 80, ideal: 120)
-                    TableColumn("Confidence") { row in
+                    TableColumn("Confidence", value: \InspectorRow.confidence) { row in
                         Text(displayString(row.dict, "confidence"))
                     }
                     .width(min: 60, ideal: 80)
@@ -374,6 +415,7 @@ private struct TranscriptTab: View {
 
 private struct OCRTab: View {
     let data: SVPInspectorData
+    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         if data.textObservations.isEmpty && data.textRegions.isEmpty {
@@ -399,26 +441,26 @@ private struct OCRTab: View {
                 .font(.caption)
                 .padding(.horizontal, 4)
 
-                let rows = makeRows(data.textObservations)
-                Table(rows) {
-                    TableColumn("Raw Text") { row in
+                let rows = sortedRows(makeRows(data.textObservations), sortOrder: sortOrder)
+                Table(rows, sortOrder: $sortOrder) {
+                    TableColumn("Raw Text", value: \InspectorRow.raw_text) { row in
                         Text(displayString(row.dict, "raw_text"))
                             .textSelection(.enabled)
                     }
                     .width(min: 80, ideal: 200)
-                    TableColumn("Normalized") { row in
+                    TableColumn("Normalized", value: \InspectorRow.normalized_text) { row in
                         Text(displayString(row.dict, "normalized_text"))
                     }
                     .width(min: 80, ideal: 150)
-                    TableColumn("Start (s)") { row in
+                    TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
                         Text(formatMicroseconds(row.dict, "start_us"))
                     }
                     .width(min: 60, ideal: 80)
-                    TableColumn("Confidence") { row in
+                    TableColumn("Confidence", value: \InspectorRow.confidence) { row in
                         Text(displayString(row.dict, "confidence"))
                     }
                     .width(min: 60, ideal: 80)
-                    TableColumn("Region ID") { row in
+                    TableColumn("Region ID", value: \InspectorRow.text_region_id) { row in
                         Text(displayString(row.dict, "text_region_id"))
                     }
                     .width(min: 80, ideal: 140)
@@ -568,6 +610,7 @@ final class EvidenceCropQuickLookController: NSObject, QLPreviewPanelDataSource 
 
 private struct ColorsTab: View {
     let data: SVPInspectorData
+    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         if data.colorObservations.isEmpty {
@@ -583,29 +626,29 @@ private struct ColorsTab: View {
                     .padding(.horizontal, 4)
                 }
 
-                let rows = makeRows(data.colorObservations)
-                Table(rows) {
-                    TableColumn("Target Type") { row in
+                let rows = sortedRows(makeRows(data.colorObservations), sortOrder: sortOrder)
+                Table(rows, sortOrder: $sortOrder) {
+                    TableColumn("Target Type", value: \InspectorRow.target_type) { row in
                         Text(displayString(row.dict, "target_type"))
                     }
                     .width(min: 60, ideal: 100)
-                    TableColumn("Target ID") { row in
+                    TableColumn("Target ID", value: \InspectorRow.target_id) { row in
                         Text(displayString(row.dict, "target_id"))
                     }
                     .width(min: 80, ideal: 140)
-                    TableColumn("Start (s)") { row in
+                    TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
                         Text(formatMicroseconds(row.dict, "start_us"))
                     }
                     .width(min: 60, ideal: 80)
-                    TableColumn("Dominant") { row in
+                    TableColumn("Dominant", value: \InspectorRow.dominant_bucket) { row in
                         Text(displayString(row.dict, "dominant_bucket"))
                     }
                     .width(min: 60, ideal: 100)
-                    TableColumn("Coverage") { row in
+                    TableColumn("Coverage", value: \InspectorRow.coverage_total) { row in
                         Text(displayString(row.dict, "coverage_total"))
                     }
                     .width(min: 60, ideal: 80)
-                    TableColumn("Quality") { row in
+                    TableColumn("Quality", value: \InspectorRow.quality_score) { row in
                         Text(displayString(row.dict, "quality_score"))
                     }
                     .width(min: 50, ideal: 70)
@@ -619,6 +662,8 @@ private struct ColorsTab: View {
 
 private struct ScenesTab: View {
     let data: SVPInspectorData
+    @State private var sceneSortOrder: [KeyPathComparator<InspectorRow>] = []
+    @State private var shotSortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         if data.scenes.isEmpty && data.shots.isEmpty {
@@ -629,21 +674,21 @@ private struct ScenesTab: View {
                     Text("Scenes (\(data.scenes.count))")
                         .font(.headline)
 
-                    let sceneRows = makeRows(data.scenes)
-                    Table(sceneRows) {
-                        TableColumn("ID") { row in
+                    let sceneRows = sortedRows(makeRows(data.scenes), sortOrder: sceneSortOrder)
+                    Table(sceneRows, sortOrder: $sceneSortOrder) {
+                        TableColumn("ID", value: \InspectorRow.id_string) { row in
                             Text(displayString(row.dict, "id"))
                         }
                         .width(min: 80, ideal: 140)
-                        TableColumn("Start (s)") { row in
+                        TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
                             Text(formatMicroseconds(row.dict, "start_us"))
                         }
                         .width(min: 60, ideal: 80)
-                        TableColumn("End (s)") { row in
+                        TableColumn("End (s)", value: \InspectorRow.end_us) { row in
                             Text(formatMicroseconds(row.dict, "end_us"))
                         }
                         .width(min: 60, ideal: 80)
-                        TableColumn("Shots") { row in
+                        TableColumn("Shots", value: \InspectorRow.shot_ids) { row in
                             if let shots = row.dict["shot_ids"] as? [Any] {
                                 Text("\(shots.count)")
                             } else {
@@ -658,21 +703,21 @@ private struct ScenesTab: View {
                     Text("Shots (\(data.shots.count))")
                         .font(.headline)
 
-                    let shotRows = makeRows(data.shots)
-                    Table(shotRows) {
-                        TableColumn("ID") { row in
+                    let shotRows = sortedRows(makeRows(data.shots), sortOrder: shotSortOrder)
+                    Table(shotRows, sortOrder: $shotSortOrder) {
+                        TableColumn("ID", value: \InspectorRow.id_string) { row in
                             Text(displayString(row.dict, "id"))
                         }
                         .width(min: 80, ideal: 140)
-                        TableColumn("Start (s)") { row in
+                        TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
                             Text(formatMicroseconds(row.dict, "start_us"))
                         }
                         .width(min: 60, ideal: 80)
-                        TableColumn("End (s)") { row in
+                        TableColumn("End (s)", value: \InspectorRow.end_us) { row in
                             Text(formatMicroseconds(row.dict, "end_us"))
                         }
                         .width(min: 60, ideal: 80)
-                        TableColumn("Cut In") { row in
+                        TableColumn("Cut In", value: \InspectorRow.cut_type_in) { row in
                             Text(displayString(row.dict, "cut_type_in"))
                         }
                         .width(min: 60, ideal: 100)
@@ -687,6 +732,7 @@ private struct ScenesTab: View {
 
 private struct EntitiesTab: View {
     let data: SVPInspectorData
+    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         if data.entities.isEmpty {
@@ -700,25 +746,25 @@ private struct EntitiesTab: View {
                 .font(.caption)
                 .padding(.horizontal, 4)
 
-                let rows = makeRows(data.entities)
-                Table(rows) {
-                    TableColumn("ID") { row in
+                let rows = sortedRows(makeRows(data.entities), sortOrder: sortOrder)
+                Table(rows, sortOrder: $sortOrder) {
+                    TableColumn("ID", value: \InspectorRow.id_string) { row in
                         Text(displayString(row.dict, "id"))
                     }
                     .width(min: 80, ideal: 140)
-                    TableColumn("Type") { row in
+                    TableColumn("Type", value: \InspectorRow.entity_type) { row in
                         Text(displayString(row.dict, "entity_type"))
                     }
                     .width(min: 60, ideal: 120)
-                    TableColumn("First Seen (s)") { row in
+                    TableColumn("First Seen (s)", value: \InspectorRow.first_seen_us) { row in
                         Text(formatMicroseconds(row.dict, "first_seen_us"))
                     }
                     .width(min: 60, ideal: 100)
-                    TableColumn("Last Seen (s)") { row in
+                    TableColumn("Last Seen (s)", value: \InspectorRow.last_seen_us) { row in
                         Text(formatMicroseconds(row.dict, "last_seen_us"))
                     }
                     .width(min: 60, ideal: 100)
-                    TableColumn("Avg Visibility") { row in
+                    TableColumn("Avg Visibility", value: \InspectorRow.average_visibility) { row in
                         Text(displayString(row.dict, "average_visibility"))
                     }
                     .width(min: 60, ideal: 90)
@@ -732,6 +778,7 @@ private struct EntitiesTab: View {
 
 private struct ProvenanceTab: View {
     let data: SVPInspectorData
+    @State private var procSortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         ScrollView {
@@ -769,17 +816,17 @@ private struct ProvenanceTab: View {
 
                 if !data.provenanceProcessors.isEmpty {
                     section("Processors (\(data.provenanceProcessors.count))") {
-                        let procRows = makeRows(data.provenanceProcessors)
-                        Table(procRows) {
-                            TableColumn("ID") { row in
+                        let procRows = sortedRows(makeRows(data.provenanceProcessors), sortOrder: procSortOrder)
+                        Table(procRows, sortOrder: $procSortOrder) {
+                            TableColumn("ID", value: \InspectorRow.id_string) { row in
                                 Text(displayString(row.dict, "id"))
                             }
                             .width(min: 80, ideal: 180)
-                            TableColumn("Name") { row in
+                            TableColumn("Name", value: \InspectorRow.name) { row in
                                 Text(displayString(row.dict, "name"))
                             }
                             .width(min: 60, ideal: 150)
-                            TableColumn("Version") { row in
+                            TableColumn("Version", value: \InspectorRow.version) { row in
                                 Text(displayString(row.dict, "version"))
                             }
                             .width(min: 50, ideal: 80)
