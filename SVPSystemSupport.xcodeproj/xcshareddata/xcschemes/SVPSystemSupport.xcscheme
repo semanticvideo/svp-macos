@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "2640"
-   wasCreatedForAppExtension = "YES"
-   version = "2.0">
+   version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
@@ -16,24 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "8E5F820E2FE8C100008F9F09"
-               BuildableName = "svp-media-reader.appex"
-               BlueprintName = "svp-media-reader"
-               ReferencedContainer = "container:svp-system-support.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "8E5F804D2FE8B2BB008F9F09"
-               BuildableName = "svp-system-support.app"
-               BlueprintName = "svp-system-support"
-               ReferencedContainer = "container:svp-system-support.xcodeproj">
+               BuildableName = "SVPSystemSupport.app"
+               BlueprintName = "SVPSystemSupport"
+               ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -44,28 +29,50 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
+      <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8E5F805A2FE8B2BD008F9F09"
+               BuildableName = "SVPSystemSupportTests.xctest"
+               BlueprintName = "SVPSystemSupportTests"
+               ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8E5F80642FE8B2BD008F9F09"
+               BuildableName = "SVPSystemSupportUITests.xctest"
+               BlueprintName = "SVPSystemSupportUITests"
+               ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Debug"
-      selectedDebuggerIdentifier = ""
-      selectedLauncherIdentifier = "Xcode.IDEFoundation.Launcher.PosixSpawn"
+      buildConfiguration = "Release"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      askForAppToLaunch = "Yes"
       useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES"
-      launchAutomaticallySubstyle = "2"
       queueDebuggingEnableBacktraceRecording = "Yes">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8E5F804D2FE8B2BB008F9F09"
-            BuildableName = "svp-system-support.app"
-            BlueprintName = "svp-system-support"
-            ReferencedContainer = "container:svp-system-support.xcodeproj">
+            BuildableName = "SVPSystemSupport.app"
+            BlueprintName = "SVPSystemSupport"
+            ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -74,17 +81,15 @@
       shouldUseLaunchSchemeArgsEnv = "YES"
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
-      debugDocumentVersioning = "YES"
-      askForAppToLaunch = "Yes"
-      launchAutomaticallySubstyle = "2">
+      debugDocumentVersioning = "YES">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8E5F804D2FE8B2BB008F9F09"
-            BuildableName = "svp-system-support.app"
-            BlueprintName = "svp-system-support"
-            ReferencedContainer = "container:svp-system-support.xcodeproj">
+            BuildableName = "SVPSystemSupport.app"
+            BlueprintName = "SVPSystemSupport"
+            ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

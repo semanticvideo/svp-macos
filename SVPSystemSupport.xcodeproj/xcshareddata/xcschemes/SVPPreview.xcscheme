@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "8E5F807C2FE8B33E008F9F09"
-               BuildableName = "svp-preview.appex"
-               BlueprintName = "svp-preview"
-               ReferencedContainer = "container:svp-system-support.xcodeproj">
+               BuildableName = "SVPPreview.appex"
+               BlueprintName = "SVPPreview"
+               ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -30,9 +30,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "8E5F804D2FE8B2BB008F9F09"
-               BuildableName = "svp-system-support.app"
-               BlueprintName = "svp-system-support"
-               ReferencedContainer = "container:svp-system-support.xcodeproj">
+               BuildableName = "SVPSystemSupport.app"
+               BlueprintName = "SVPSystemSupport"
+               ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -62,9 +62,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8E5F804D2FE8B2BB008F9F09"
-            BuildableName = "svp-system-support.app"
-            BlueprintName = "svp-system-support"
-            ReferencedContainer = "container:svp-system-support.xcodeproj">
+            BuildableName = "SVPSystemSupport.app"
+            BlueprintName = "SVPSystemSupport"
+            ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -81,9 +81,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8E5F804D2FE8B2BB008F9F09"
-            BuildableName = "svp-system-support.app"
-            BlueprintName = "svp-system-support"
-            ReferencedContainer = "container:svp-system-support.xcodeproj">
+            BuildableName = "SVPSystemSupport.app"
+            BlueprintName = "SVPSystemSupport"
+            ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

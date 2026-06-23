@@ -9,11 +9,11 @@
 /* Begin PBXBuildFile section */
 		8E1EE6A7B86B6B4C /* SVPReader in Frameworks */ = {isa = PBXBuildFile; productRef = 8E1EE6A8B86B6B4C /* SVPReader */; };
 		8E5F80802FE8B33E008F9F09 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E5F807F2FE8B33E008F9F09 /* Quartz.framework */; };
-		8E5F808C2FE8B33E008F9F09 /* svp-preview.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8E5F807D2FE8B33E008F9F09 /* svp-preview.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8E5F808C2FE8B33E008F9F09 /* SVPPreview.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8E5F807D2FE8B33E008F9F09 /* SVPPreview.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8E5F82022FE8C100008F9F09 /* SVPReader in Frameworks */ = {isa = PBXBuildFile; productRef = 8E5F82012FE8C100008F9F09 /* SVPReader */; };
 		8E5F82042FE8C100008F9F09 /* SVPReader in Frameworks */ = {isa = PBXBuildFile; productRef = 8E5F82032FE8C100008F9F09 /* SVPReader */; };
 		8E5F82062FE8C100008F9F09 /* MediaExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E5F82052FE8C100008F9F09 /* MediaExtension.framework */; };
-		8E5F82082FE8C100008F9F09 /* svp-media-reader.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8E5F82072FE8C100008F9F09 /* svp-media-reader.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8E5F82082FE8C100008F9F09 /* SVPMediaReader.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8E5F82072FE8C100008F9F09 /* SVPMediaReader.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -22,28 +22,28 @@
 			containerPortal = 8E5F80462FE8B2BB008F9F09 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 8E5F804D2FE8B2BB008F9F09;
-			remoteInfo = "svp-system-support";
+			remoteInfo = SVPSystemSupport;
 		};
 		8E5F80662FE8B2BE008F9F09 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8E5F80462FE8B2BB008F9F09 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 8E5F804D2FE8B2BB008F9F09;
-			remoteInfo = "svp-system-support";
+			remoteInfo = SVPSystemSupport;
 		};
 		8E5F808A2FE8B33E008F9F09 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8E5F80462FE8B2BB008F9F09 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 8E5F807C2FE8B33E008F9F09;
-			remoteInfo = "svp-preview";
+			remoteInfo = SVPPreview;
 		};
 		8E5F820F2FE8C100008F9F09 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8E5F80462FE8B2BB008F9F09 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 8E5F820E2FE8C100008F9F09;
-			remoteInfo = "svp-media-reader";
+			remoteInfo = SVPMediaReader;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -54,8 +54,8 @@
 			dstPath = "";
 			dstSubfolderSpec = 16;
 			files = (
-				8E5F808C2FE8B33E008F9F09 /* svp-preview.appex in Embed Foundation Extensions */,
-				8E5F82082FE8C100008F9F09 /* svp-media-reader.appex in Embed Foundation Extensions */,
+				8E5F808C2FE8B33E008F9F09 /* SVPPreview.appex in Embed Foundation Extensions */,
+				8E5F82082FE8C100008F9F09 /* SVPMediaReader.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -73,72 +73,72 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		8E5F804E2FE8B2BB008F9F09 /* svp-system-support.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "svp-system-support.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		8E5F805B2FE8B2BD008F9F09 /* svp-system-supportTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "svp-system-supportTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		8E5F80652FE8B2BD008F9F09 /* svp-system-supportUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "svp-system-supportUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		8E5F807D2FE8B33E008F9F09 /* svp-preview.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "svp-preview.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E5F804E2FE8B2BB008F9F09 /* SVPSystemSupport.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SVPSystemSupport.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E5F805B2FE8B2BD008F9F09 /* SVPSystemSupportTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SVPSystemSupportTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E5F80652FE8B2BD008F9F09 /* SVPSystemSupportUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SVPSystemSupportUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E5F807D2FE8B33E008F9F09 /* SVPPreview.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SVPPreview.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8E5F807F2FE8B33E008F9F09 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
 		8E5F82052FE8C100008F9F09 /* MediaExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaExtension.framework; path = System/Library/Frameworks/MediaExtension.framework; sourceTree = SDKROOT; };
-		8E5F82072FE8C100008F9F09 /* svp-media-reader.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "svp-media-reader.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E5F82072FE8C100008F9F09 /* SVPMediaReader.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SVPMediaReader.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		8E5F808D2FE8B33E008F9F09 /* Exceptions for "svp-preview" folder in "svp-preview" target */ = {
+		8E5F808D2FE8B33E008F9F09 /* Exceptions for "SVPPreview" folder in "SVPPreview" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 8E5F807C2FE8B33E008F9F09 /* svp-preview */;
+			target = 8E5F807C2FE8B33E008F9F09 /* SVPPreview */;
 		};
-		8E5F820A2FE8C100008F9F09 /* Exceptions for "svp-media-reader" folder in "svp-media-reader" target */ = {
+		8E5F820A2FE8C100008F9F09 /* Exceptions for "SVPMediaReader" folder in "SVPMediaReader" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 8E5F820E2FE8C100008F9F09 /* svp-media-reader */;
+			target = 8E5F820E2FE8C100008F9F09 /* SVPMediaReader */;
 		};
-		8E5F82142FE8C100008F9F09 /* Exceptions for "svp-system-support" folder in "svp-system-support" target */ = {
+		8E5F82142FE8C100008F9F09 /* Exceptions for "SVPSystemSupport" folder in "SVPSystemSupport" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 8E5F804D2FE8B2BB008F9F09 /* svp-system-support */;
+			target = 8E5F804D2FE8B2BB008F9F09 /* SVPSystemSupport */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		8E5F80502FE8B2BB008F9F09 /* svp-system-support */ = {
+		8E5F80502FE8B2BB008F9F09 /* SVPSystemSupport */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				8E5F82142FE8C100008F9F09 /* Exceptions for "svp-system-support" folder in "svp-system-support" target */,
+				8E5F82142FE8C100008F9F09 /* Exceptions for "SVPSystemSupport" folder in "SVPSystemSupport" target */,
 			);
-			path = "svp-system-support";
+			path = SVPSystemSupport;
 			sourceTree = "<group>";
 		};
-		8E5F805E2FE8B2BD008F9F09 /* svp-system-supportTests */ = {
+		8E5F805E2FE8B2BD008F9F09 /* SVPSystemSupportTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "svp-system-supportTests";
+			path = SVPSystemSupportTests;
 			sourceTree = "<group>";
 		};
-		8E5F80682FE8B2BE008F9F09 /* svp-system-supportUITests */ = {
+		8E5F80682FE8B2BE008F9F09 /* SVPSystemSupportUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "svp-system-supportUITests";
+			path = SVPSystemSupportUITests;
 			sourceTree = "<group>";
 		};
-		8E5F80812FE8B33E008F9F09 /* svp-preview */ = {
+		8E5F80812FE8B33E008F9F09 /* SVPPreview */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				8E5F808D2FE8B33E008F9F09 /* Exceptions for "svp-preview" folder in "svp-preview" target */,
+				8E5F808D2FE8B33E008F9F09 /* Exceptions for "SVPPreview" folder in "SVPPreview" target */,
 			);
-			path = "svp-preview";
+			path = SVPPreview;
 			sourceTree = "<group>";
 		};
-		8E5F82092FE8C100008F9F09 /* svp-media-reader */ = {
+		8E5F82092FE8C100008F9F09 /* SVPMediaReader */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				8E5F820A2FE8C100008F9F09 /* Exceptions for "svp-media-reader" folder in "svp-media-reader" target */,
+				8E5F820A2FE8C100008F9F09 /* Exceptions for "SVPMediaReader" folder in "SVPMediaReader" target */,
 			);
-			path = "svp-media-reader";
+			path = SVPMediaReader;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -190,11 +190,11 @@
 		8E5F80452FE8B2BB008F9F09 = {
 			isa = PBXGroup;
 			children = (
-				8E5F80502FE8B2BB008F9F09 /* svp-system-support */,
-				8E5F805E2FE8B2BD008F9F09 /* svp-system-supportTests */,
-				8E5F80682FE8B2BE008F9F09 /* svp-system-supportUITests */,
-				8E5F80812FE8B33E008F9F09 /* svp-preview */,
-				8E5F82092FE8C100008F9F09 /* svp-media-reader */,
+				8E5F80502FE8B2BB008F9F09 /* SVPSystemSupport */,
+				8E5F805E2FE8B2BD008F9F09 /* SVPSystemSupportTests */,
+				8E5F80682FE8B2BE008F9F09 /* SVPSystemSupportUITests */,
+				8E5F80812FE8B33E008F9F09 /* SVPPreview */,
+				8E5F82092FE8C100008F9F09 /* SVPMediaReader */,
 				8E5F807E2FE8B33E008F9F09 /* Frameworks */,
 				8E5F804F2FE8B2BB008F9F09 /* Products */,
 			);
@@ -203,11 +203,11 @@
 		8E5F804F2FE8B2BB008F9F09 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8E5F804E2FE8B2BB008F9F09 /* svp-system-support.app */,
-				8E5F805B2FE8B2BD008F9F09 /* svp-system-supportTests.xctest */,
-				8E5F80652FE8B2BD008F9F09 /* svp-system-supportUITests.xctest */,
-				8E5F807D2FE8B33E008F9F09 /* svp-preview.appex */,
-				8E5F82072FE8C100008F9F09 /* svp-media-reader.appex */,
+				8E5F804E2FE8B2BB008F9F09 /* SVPSystemSupport.app */,
+				8E5F805B2FE8B2BD008F9F09 /* SVPSystemSupportTests.xctest */,
+				8E5F80652FE8B2BD008F9F09 /* SVPSystemSupportUITests.xctest */,
+				8E5F807D2FE8B33E008F9F09 /* SVPPreview.appex */,
+				8E5F82072FE8C100008F9F09 /* SVPMediaReader.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -224,9 +224,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		8E5F804D2FE8B2BB008F9F09 /* svp-system-support */ = {
+		8E5F804D2FE8B2BB008F9F09 /* SVPSystemSupport */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8E5F806F2FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-support" */;
+			buildConfigurationList = 8E5F806F2FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "SVPSystemSupport" */;
 			buildPhases = (
 				8E5F804A2FE8B2BB008F9F09 /* Sources */,
 				8E5F804B2FE8B2BB008F9F09 /* Frameworks */,
@@ -242,19 +242,19 @@
 				8E5F82102FE8C100008F9F09 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				8E5F80502FE8B2BB008F9F09 /* svp-system-support */,
+				8E5F80502FE8B2BB008F9F09 /* SVPSystemSupport */,
 			);
-			name = "svp-system-support";
+			name = SVPSystemSupport;
 			packageProductDependencies = (
 				8E1EE6A8B86B6B4C /* SVPReader */,
 			);
-			productName = "svp-system-support";
-			productReference = 8E5F804E2FE8B2BB008F9F09 /* svp-system-support.app */;
+			productName = SVPSystemSupport;
+			productReference = 8E5F804E2FE8B2BB008F9F09 /* SVPSystemSupport.app */;
 			productType = "com.apple.product-type.application";
 		};
-		8E5F805A2FE8B2BD008F9F09 /* svp-system-supportTests */ = {
+		8E5F805A2FE8B2BD008F9F09 /* SVPSystemSupportTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8E5F80722FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-supportTests" */;
+			buildConfigurationList = 8E5F80722FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "SVPSystemSupportTests" */;
 			buildPhases = (
 				8E5F80572FE8B2BD008F9F09 /* Sources */,
 				8E5F80582FE8B2BD008F9F09 /* Frameworks */,
@@ -266,18 +266,18 @@
 				8E5F805D2FE8B2BD008F9F09 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				8E5F805E2FE8B2BD008F9F09 /* svp-system-supportTests */,
+				8E5F805E2FE8B2BD008F9F09 /* SVPSystemSupportTests */,
 			);
-			name = "svp-system-supportTests";
+			name = SVPSystemSupportTests;
 			packageProductDependencies = (
 			);
-			productName = "svp-system-supportTests";
-			productReference = 8E5F805B2FE8B2BD008F9F09 /* svp-system-supportTests.xctest */;
+			productName = SVPSystemSupportTests;
+			productReference = 8E5F805B2FE8B2BD008F9F09 /* SVPSystemSupportTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		8E5F80642FE8B2BD008F9F09 /* svp-system-supportUITests */ = {
+		8E5F80642FE8B2BD008F9F09 /* SVPSystemSupportUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8E5F80752FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-supportUITests" */;
+			buildConfigurationList = 8E5F80752FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "SVPSystemSupportUITests" */;
 			buildPhases = (
 				8E5F80612FE8B2BD008F9F09 /* Sources */,
 				8E5F80622FE8B2BD008F9F09 /* Frameworks */,
@@ -289,18 +289,18 @@
 				8E5F80672FE8B2BE008F9F09 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				8E5F80682FE8B2BE008F9F09 /* svp-system-supportUITests */,
+				8E5F80682FE8B2BE008F9F09 /* SVPSystemSupportUITests */,
 			);
-			name = "svp-system-supportUITests";
+			name = SVPSystemSupportUITests;
 			packageProductDependencies = (
 			);
-			productName = "svp-system-supportUITests";
-			productReference = 8E5F80652FE8B2BD008F9F09 /* svp-system-supportUITests.xctest */;
+			productName = SVPSystemSupportUITests;
+			productReference = 8E5F80652FE8B2BD008F9F09 /* SVPSystemSupportUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		8E5F807C2FE8B33E008F9F09 /* svp-preview */ = {
+		8E5F807C2FE8B33E008F9F09 /* SVPPreview */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8E5F808E2FE8B33E008F9F09 /* Build configuration list for PBXNativeTarget "svp-preview" */;
+			buildConfigurationList = 8E5F808E2FE8B33E008F9F09 /* Build configuration list for PBXNativeTarget "SVPPreview" */;
 			buildPhases = (
 				8E5F80792FE8B33E008F9F09 /* Sources */,
 				8E5F807A2FE8B33E008F9F09 /* Frameworks */,
@@ -311,19 +311,19 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				8E5F80812FE8B33E008F9F09 /* svp-preview */,
+				8E5F80812FE8B33E008F9F09 /* SVPPreview */,
 			);
-			name = "svp-preview";
+			name = SVPPreview;
 			packageProductDependencies = (
 				8E5F82012FE8C100008F9F09 /* SVPReader */,
 			);
-			productName = "svp-preview";
-			productReference = 8E5F807D2FE8B33E008F9F09 /* svp-preview.appex */;
+			productName = SVPPreview;
+			productReference = 8E5F807D2FE8B33E008F9F09 /* SVPPreview.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		8E5F820E2FE8C100008F9F09 /* svp-media-reader */ = {
+		8E5F820E2FE8C100008F9F09 /* SVPMediaReader */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8E5F82132FE8C100008F9F09 /* Build configuration list for PBXNativeTarget "svp-media-reader" */;
+			buildConfigurationList = 8E5F82132FE8C100008F9F09 /* Build configuration list for PBXNativeTarget "SVPMediaReader" */;
 			buildPhases = (
 				8E5F820B2FE8C100008F9F09 /* Sources */,
 				8E5F820C2FE8C100008F9F09 /* Frameworks */,
@@ -334,14 +334,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				8E5F82092FE8C100008F9F09 /* svp-media-reader */,
+				8E5F82092FE8C100008F9F09 /* SVPMediaReader */,
 			);
-			name = "svp-media-reader";
+			name = SVPMediaReader;
 			packageProductDependencies = (
 				8E5F82032FE8C100008F9F09 /* SVPReader */,
 			);
-			productName = "svp-media-reader";
-			productReference = 8E5F82072FE8C100008F9F09 /* svp-media-reader.appex */;
+			productName = SVPMediaReader;
+			productReference = 8E5F82072FE8C100008F9F09 /* SVPMediaReader.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -373,7 +373,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 8E5F80492FE8B2BB008F9F09 /* Build configuration list for PBXProject "svp-system-support" */;
+			buildConfigurationList = 8E5F80492FE8B2BB008F9F09 /* Build configuration list for PBXProject "SVPSystemSupport" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -390,11 +390,11 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8E5F804D2FE8B2BB008F9F09 /* svp-system-support */,
-				8E5F805A2FE8B2BD008F9F09 /* svp-system-supportTests */,
-				8E5F80642FE8B2BD008F9F09 /* svp-system-supportUITests */,
-				8E5F807C2FE8B33E008F9F09 /* svp-preview */,
-				8E5F820E2FE8C100008F9F09 /* svp-media-reader */,
+				8E5F804D2FE8B2BB008F9F09 /* SVPSystemSupport */,
+				8E5F805A2FE8B2BD008F9F09 /* SVPSystemSupportTests */,
+				8E5F80642FE8B2BD008F9F09 /* SVPSystemSupportUITests */,
+				8E5F807C2FE8B33E008F9F09 /* SVPPreview */,
+				8E5F820E2FE8C100008F9F09 /* SVPMediaReader */,
 			);
 		};
 /* End PBXProject section */
@@ -445,17 +445,17 @@
 			files = (
 			);
 			inputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/svp-preview.appex",
-				"$(BUILT_PRODUCTS_DIR)/svp-media-reader.appex",
+				"$(BUILT_PRODUCTS_DIR)/SVPPreview.appex",
+				"$(BUILT_PRODUCTS_DIR)/SVPMediaReader.appex",
 			);
 			name = "Embed Extensions";
 			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/PlugIns/svp-preview.appex",
-				"$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Extensions/svp-media-reader.appex",
+				"$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/PlugIns/SVPPreview.appex",
+				"$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Extensions/SVPMediaReader.appex",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\nplugins_dir=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/PlugIns\"\nextensions_dir=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Extensions\"\nmkdir -p \"$plugins_dir\"\nmkdir -p \"$extensions_dir\"\nrm -rf \"$plugins_dir/svp-preview.appex\"\nrm -rf \"$extensions_dir/svp-preview.appex\"\nrm -rf \"$extensions_dir/svp-media-reader.appex\"\ncp -RL \"$BUILT_PRODUCTS_DIR/svp-preview.appex\" \"$plugins_dir/svp-preview.appex\"\ncp -RL \"$BUILT_PRODUCTS_DIR/svp-media-reader.appex\" \"$extensions_dir/svp-media-reader.appex\"\n";
+			shellScript = "set -e\n\nplugins_dir=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/PlugIns\"\nextensions_dir=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Extensions\"\nmkdir -p \"$plugins_dir\"\nmkdir -p \"$extensions_dir\"\nrm -rf \"$plugins_dir/SVPPreview.appex\"\nrm -rf \"$extensions_dir/SVPPreview.appex\"\nrm -rf \"$extensions_dir/SVPMediaReader.appex\"\ncp -RL \"$BUILT_PRODUCTS_DIR/SVPPreview.appex\" \"$plugins_dir/SVPPreview.appex\"\ncp -RL \"$BUILT_PRODUCTS_DIR/SVPMediaReader.appex\" \"$extensions_dir/SVPMediaReader.appex\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -500,22 +500,22 @@
 /* Begin PBXTargetDependency section */
 		8E5F805D2FE8B2BD008F9F09 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 8E5F804D2FE8B2BB008F9F09 /* svp-system-support */;
+			target = 8E5F804D2FE8B2BB008F9F09 /* SVPSystemSupport */;
 			targetProxy = 8E5F805C2FE8B2BD008F9F09 /* PBXContainerItemProxy */;
 		};
 		8E5F80672FE8B2BE008F9F09 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 8E5F804D2FE8B2BB008F9F09 /* svp-system-support */;
+			target = 8E5F804D2FE8B2BB008F9F09 /* SVPSystemSupport */;
 			targetProxy = 8E5F80662FE8B2BE008F9F09 /* PBXContainerItemProxy */;
 		};
 		8E5F808B2FE8B33E008F9F09 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 8E5F807C2FE8B33E008F9F09 /* svp-preview */;
+			target = 8E5F807C2FE8B33E008F9F09 /* SVPPreview */;
 			targetProxy = 8E5F808A2FE8B33E008F9F09 /* PBXContainerItemProxy */;
 		};
 		8E5F82102FE8C100008F9F09 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 8E5F820E2FE8C100008F9F09 /* svp-media-reader */;
+			target = 8E5F820E2FE8C100008F9F09 /* SVPMediaReader */;
 			targetProxy = 8E5F820F2FE8C100008F9F09 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -644,10 +644,10 @@
 		8E5F80702FE8B2BE008F9F09 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "svp-support";
+				ASSETCATALOG_COMPILER_APPICON_NAME = SVPSupport;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = "svp-system-support/svp-system-support.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "SVPSystemSupport/SVPSystemSupport.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -657,7 +657,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "svp-system-support/Info.plist";
+				INFOPLIST_FILE = SVPSystemSupport/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "SVP Supprt";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -682,10 +682,10 @@
 		8E5F80712FE8B2BE008F9F09 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "svp-support";
+				ASSETCATALOG_COMPILER_APPICON_NAME = SVPSupport;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = "svp-system-support/svp-system-support.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "SVPSystemSupport/SVPSystemSupport.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -695,7 +695,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "svp-system-support/Info.plist";
+				INFOPLIST_FILE = SVPSystemSupport/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "SVP Supprt";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -734,7 +734,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/svp-system-support.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/svp-system-support";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SVPSystemSupport.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SVPSystemSupport";
 			};
 			name = Debug;
 		};
@@ -755,7 +755,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/svp-system-support.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/svp-system-support";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SVPSystemSupport.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SVPSystemSupport";
 			};
 			name = Release;
 		};
@@ -775,7 +775,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = "svp-system-support";
+				TEST_TARGET_NAME = SVPSystemSupport;
 			};
 			name = Debug;
 		};
@@ -795,14 +795,14 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = "svp-system-support";
+				TEST_TARGET_NAME = SVPSystemSupport;
 			};
 			name = Release;
 		};
 		8E5F808F2FE8B33E008F9F09 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "svp-preview/svp-preview.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "SVPPreview/SVPPreview.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = U7YT4DBC54;
@@ -810,8 +810,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "svp-preview/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "svp-preview";
+				INFOPLIST_FILE = SVPPreview/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SVPPreview;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -835,7 +835,7 @@
 		8E5F80902FE8B33E008F9F09 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "svp-preview/svp-preview.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "SVPPreview/SVPPreview.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = U7YT4DBC54;
@@ -843,8 +843,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "svp-preview/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "svp-preview";
+				INFOPLIST_FILE = SVPPreview/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SVPPreview;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -868,7 +868,7 @@
 		8E5F82112FE8C100008F9F09 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "svp-media-reader/svp-media-reader.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "SVPMediaReader/SVPMediaReader.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = U7YT4DBC54;
@@ -876,8 +876,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "svp-media-reader/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "svp-media-reader";
+				INFOPLIST_FILE = SVPMediaReader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SVPMediaReader;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -893,7 +893,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "svp-media-reader/svp-media-reader-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "SVPMediaReader/SVPMediaReader-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -902,7 +902,7 @@
 		8E5F82122FE8C100008F9F09 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "svp-media-reader/svp-media-reader.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "SVPMediaReader/SVPMediaReader.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = U7YT4DBC54;
@@ -910,8 +910,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "svp-media-reader/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "svp-media-reader";
+				INFOPLIST_FILE = SVPMediaReader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SVPMediaReader;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -927,7 +927,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "svp-media-reader/svp-media-reader-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "SVPMediaReader/SVPMediaReader-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -936,7 +936,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		8E5F80492FE8B2BB008F9F09 /* Build configuration list for PBXProject "svp-system-support" */ = {
+		8E5F80492FE8B2BB008F9F09 /* Build configuration list for PBXProject "SVPSystemSupport" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				8E5F806D2FE8B2BE008F9F09 /* Debug */,
@@ -945,7 +945,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8E5F806F2FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-support" */ = {
+		8E5F806F2FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "SVPSystemSupport" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				8E5F80702FE8B2BE008F9F09 /* Debug */,
@@ -954,7 +954,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8E5F80722FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-supportTests" */ = {
+		8E5F80722FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "SVPSystemSupportTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				8E5F80732FE8B2BE008F9F09 /* Debug */,
@@ -963,7 +963,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8E5F80752FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "svp-system-supportUITests" */ = {
+		8E5F80752FE8B2BE008F9F09 /* Build configuration list for PBXNativeTarget "SVPSystemSupportUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				8E5F80762FE8B2BE008F9F09 /* Debug */,
@@ -972,7 +972,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8E5F808E2FE8B33E008F9F09 /* Build configuration list for PBXNativeTarget "svp-preview" */ = {
+		8E5F808E2FE8B33E008F9F09 /* Build configuration list for PBXNativeTarget "SVPPreview" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				8E5F808F2FE8B33E008F9F09 /* Debug */,
@@ -981,7 +981,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8E5F82132FE8C100008F9F09 /* Build configuration list for PBXNativeTarget "svp-media-reader" */ = {
+		8E5F82132FE8C100008F9F09 /* Build configuration list for PBXNativeTarget "SVPMediaReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				8E5F82112FE8C100008F9F09 /* Debug */,

@@ -9,7 +9,7 @@ final class SVPReaderTests: XCTestCase {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("svp-system-supportTests/Resources/SVP-TEST.svp")
+            .appendingPathComponent("SVPSystemSupportTests/Resources/SVP-TEST.svp")
     }
 
     func testOpenAndValidateSVP() throws {

@@ -1,13 +1,13 @@
 //
-//  svp_system_supportUITestsLaunchTests.swift
-//  svp-system-supportUITests
+//  SVPSystemSupportUITestsLaunchTests.swift
+//  SVPSystemSupportUITests
 //
 //  Created by Dom Esposito on 6/21/26.
 //
 
 import XCTest
 
-final class svp_system_supportUITestsLaunchTests: XCTestCase {
+final class SVPSystemSupportUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

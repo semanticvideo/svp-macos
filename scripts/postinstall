@@ -3,24 +3,24 @@
 # Runs after the PKG installer copies the app to /Applications
 
 # Touch the app to register UTTypes with Launch Services
-if [ -d "/Applications/svp-system-support.app" ]; then
+if [ -d "/Applications/SVPSystemSupport.app" ]; then
     /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
-        -f "/Applications/svp-system-support.app"
-    echo "Registered svp-system-support.app with Launch Services"
+        -f "/Applications/SVPSystemSupport.app"
+    echo "Registered SVPSystemSupport.app with Launch Services"
 fi
 
 # Register Quick Look extension
-if [ -d "/Applications/svp-system-support.app/Contents/PlugIns/svp-preview.appex" ]; then
+if [ -d "/Applications/SVPSystemSupport.app/Contents/PlugIns/SVPPreview.appex" ]; then
     /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
-        -f "/Applications/svp-system-support.app/Contents/PlugIns/svp-preview.appex"
-    echo "Registered svp-preview.appex with Launch Services"
+        -f "/Applications/SVPSystemSupport.app/Contents/PlugIns/SVPPreview.appex"
+    echo "Registered SVPPreview.appex with Launch Services"
 fi
 
 # Register MediaExtension
-if [ -d "/Applications/svp-system-support.app/Contents/PlugIns/svp-media-reader.appex" ]; then
+if [ -d "/Applications/SVPSystemSupport.app/Contents/PlugIns/SVPMediaReader.appex" ]; then
     /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
-        -f "/Applications/svp-system-support.app/Contents/PlugIns/svp-media-reader.appex"
-    echo "Registered svp-media-reader.appex with Launch Services"
+        -f "/Applications/SVPSystemSupport.app/Contents/PlugIns/SVPMediaReader.appex"
+    echo "Registered SVPMediaReader.appex with Launch Services"
 fi
 
 echo "SVP System Support installation complete."

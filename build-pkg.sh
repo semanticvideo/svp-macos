@@ -5,12 +5,12 @@ set -euo pipefail
 # Builds the Xcode project and creates a .pkg installer
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_NAME="svp-system-support"
-SCHEME="svp-system-support"
+PROJECT_NAME="SVPSystemSupport"
+SCHEME="SVPSystemSupport"
 CONFIGURATION="Release"
 BUILD_DIR="${PROJECT_DIR}/build"
 PKG_DIR="${BUILD_DIR}/pkg"
-APP_BUNDLE="svp-system-support.app"
+APP_BUNDLE="SVPSystemSupport.app"
 PKG_OUTPUT="${BUILD_DIR}/SVPSystemSupport.pkg"
 IDENTIFIER="com.cueit.svp-system-support"
 VERSION="1.0"

@@ -15,7 +15,7 @@
 			<key>NSMessage</key>
 			<string>extractVideoService</string>
 			<key>NSPortName</key>
-			<string>svp-system-support</string>
+			<string>SVPSystemSupport</string>
 			<key>NSRequiredContext</key>
 			<dict>
 				<key>NSApplicationIdentifier</key>
@@ -37,7 +37,7 @@
 			<key>NSMessage</key>
 			<string>showTranscriptService</string>
 			<key>NSPortName</key>
-			<string>svp-system-support</string>
+			<string>SVPSystemSupport</string>
 			<key>NSRequiredContext</key>
 			<dict>
 				<key>NSApplicationIdentifier</key>

@@ -1,14 +1,14 @@
 //
-//  svp_system_supportTests.swift
-//  svp-system-supportTests
+//  SVPSystemSupportTests.swift
+//  SVPSystemSupportTests
 //
 //  Created by Dom Esposito on 6/21/26.
 //
 
 import XCTest
-@testable import svp_system_support
+@testable import SVPSystemSupport
 
-final class svp_system_supportTests: XCTestCase {
+final class SVPSystemSupportTests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

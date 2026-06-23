@@ -1,13 +1,13 @@
 //
-//  svp_system_supportUITests.swift
-//  svp-system-supportUITests
+//  SVPSystemSupportUITests.swift
+//  SVPSystemSupportUITests
 //
 //  Created by Dom Esposito on 6/21/26.
 //
 
 import XCTest
 
-final class svp_system_supportUITests: XCTestCase {
+final class SVPSystemSupportUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
