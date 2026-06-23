@@ -18,6 +18,7 @@ struct SVPInspectorData {
     let numericValues: [[String: Any]]
     let textAbsence: [String: Any]?
     let evidenceCrops: [[String: Any]]
+    let evidenceCropImages: [String: Data]
 
     let colorObservations: [[String: Any]]
     let colorSummary: [String: Any]?
@@ -60,6 +61,7 @@ struct SVPInspectorData {
         var numericValues: [[String: Any]] = []
         var textAbsence: [String: Any]?
         var evidenceCrops: [[String: Any]] = []
+        var evidenceCropImages: [String: Data] = [:]
 
         var colorObservations: [[String: Any]] = []
         var colorSummary: [String: Any]?
@@ -122,6 +124,14 @@ struct SVPInspectorData {
             }
             if reader.hasEntry("text/evidence_crops.jsonl") {
                 evidenceCrops = (try? reader.readJSONLEntry("text/evidence_crops.jsonl")) ?? []
+                for crop in evidenceCrops {
+                    if let cropFilePath = crop["crop_file_path"] as? String,
+                       !cropFilePath.isEmpty,
+                       reader.hasEntry(cropFilePath),
+                       evidenceCropImages[cropFilePath] == nil {
+                        evidenceCropImages[cropFilePath] = try? reader.readEntryData(cropFilePath)
+                    }
+                }
             }
 
             if reader.hasEntry("colors/color_observations.jsonl") {
@@ -190,6 +200,7 @@ struct SVPInspectorData {
             numericValues: numericValues,
             textAbsence: textAbsence,
             evidenceCrops: evidenceCrops,
+            evidenceCropImages: evidenceCropImages,
             colorObservations: colorObservations,
             colorSummary: colorSummary,
             colorAbsence: colorAbsence,

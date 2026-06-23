@@ -1,4 +1,5 @@
 import AppKit
+import Quartz
 import SwiftUI
 
 // MARK: - Window Controller
@@ -6,6 +7,8 @@ import SwiftUI
 final class SVPInspectorWindowController: NSWindowController {
     private let splitViewController: SVPInspectorSplitViewController
     private let toolbarProvider: SVPInspectorToolbarProvider
+    private var quickLookDataSource: QLPreviewPanelDataSource?
+    private var quickLookStartIndex: Int = 0
 
     private enum Metrics {
         static let contentSize = NSSize(width: 900, height: 650)
@@ -50,6 +53,39 @@ final class SVPInspectorWindowController: NSWindowController {
         guard let window else { return }
         NSApp.runModal(for: window)
         window.orderOut(nil)
+    }
+
+    // MARK: - Quick Look
+
+    func showQuickLook(dataSource: QLPreviewPanelDataSource, startIndex: Int) {
+        quickLookDataSource = dataSource
+        quickLookStartIndex = startIndex
+
+        let panel = QLPreviewPanel.shared()!
+        if panel.isVisible { panel.close() }
+
+        panel.updateController()
+        panel.makeKeyAndOrderFront(nil)
+    }
+}
+
+// MARK: - QLPreviewPanelController (informal protocol)
+
+extension SVPInspectorWindowController {
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool {
+        true
+    }
+
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        panel.dataSource = quickLookDataSource
+        if let ds = quickLookDataSource as? EvidenceCropQuickLookController {
+            panel.currentPreviewItemIndex = min(quickLookStartIndex, max(0, ds.tempURLs.count - 1))
+        }
+    }
+
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        panel.dataSource = nil
+        quickLookDataSource = nil
     }
 }
 
