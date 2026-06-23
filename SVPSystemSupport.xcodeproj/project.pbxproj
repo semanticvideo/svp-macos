@@ -647,7 +647,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = SVPSupport;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = "SVPSystemSupport/SVPSystemSupport.entitlements";
+				CODE_SIGN_ENTITLEMENTS = SVPSystemSupport/SVPSystemSupport.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -685,7 +685,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = SVPSupport;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = "SVPSystemSupport/SVPSystemSupport.entitlements";
+				CODE_SIGN_ENTITLEMENTS = SVPSystemSupport/SVPSystemSupport.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -802,7 +802,7 @@
 		8E5F808F2FE8B33E008F9F09 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "SVPPreview/SVPPreview.entitlements";
+				CODE_SIGN_ENTITLEMENTS = SVPPreview/SVPPreview.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = U7YT4DBC54;
@@ -835,7 +835,7 @@
 		8E5F80902FE8B33E008F9F09 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "SVPPreview/SVPPreview.entitlements";
+				CODE_SIGN_ENTITLEMENTS = SVPPreview/SVPPreview.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = U7YT4DBC54;
@@ -868,7 +868,7 @@
 		8E5F82112FE8C100008F9F09 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "SVPMediaReader/SVPMediaReader.entitlements";
+				CODE_SIGN_ENTITLEMENTS = SVPMediaReader/SVPMediaReader.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = U7YT4DBC54;
@@ -902,7 +902,7 @@
 		8E5F82122FE8C100008F9F09 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "SVPMediaReader/SVPMediaReader.entitlements";
+				CODE_SIGN_ENTITLEMENTS = SVPMediaReader/SVPMediaReader.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = U7YT4DBC54;

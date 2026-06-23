@@ -11,6 +11,7 @@ The app itself is intentionally small. It mainly acts as the installed container
 | `svp-system-support/` | Host macOS app. Registers the SVP file type and provides Finder service actions. |
 | `svp-preview/` | Quick Look preview extension for `.svp` files. |
 | `svp-media-reader/` | MediaExtension format reader for system-level media access. |
+| `SVPSystemSupport/Inspector/` | SVP Inspector — modal window for browsing package contents. |
 | `SVPReader/` | Local Swift package that validates and reads SVP packages. |
 | `scripts/postinstall` | Installer script that registers the app and extensions with Launch Services. |
 | `build-pkg.sh` | Release packaging script that builds the app and creates a `.pkg` installer. |
@@ -137,6 +138,54 @@ It:
 - Exposes file info, metadata, tracks, sample cursors, and sample buffers through MediaExtension protocols.
 
 Sample cursor behavior is implemented in Objective-C in `SVPSampleCursorObjC.m` because the code needs to safely work with `AVAssetReader`, Core Media objects, and Objective-C exceptions from inside the MediaExtension runtime.
+
+### SVP Inspector
+
+The SVP Inspector is a modal window that lets you browse the full contents of an SVP package without writing any files to disk. It opens through a Finder service when you right-click a `.svp` file and select **Inspect SVP Package**.
+
+#### Layout
+
+The inspector uses an `NSSplitViewController` with a SwiftUI sidebar and a detail pane:
+
+- **Sidebar** — A SwiftUI `List` with icons for each section.
+- **Detail pane** — Swaps views based on the selected sidebar item.
+
+#### Sections
+
+| Section | What it shows |
+| --- | --- |
+| Overview | Package metadata, manifest fields, media info, and section counts. |
+| Transcript | Word-level transcript data in a sortable table with summary stats. |
+| OCR / Text | Text observations and regions in a sortable table. |
+| Evidence Crops | Image gallery of evidence crop thumbnails with Quick Look preview on click. |
+| Colors | Color observations in a sortable table with dominant bucket and quality scores. |
+| Scenes / Timeline | Scenes and shots in separate sortable tables. |
+| Entities | Detected entities with visibility and timing in a sortable table. |
+| Provenance | Validation report, build info, and processor table. |
+| Index Summary | Search index status and manifest details. |
+
+#### Sortable Tables
+
+All tables support click-to-sort column headers. Clicking a column header sorts ascending; clicking again toggles to descending. Numeric columns sort numerically and text columns sort alphabetically.
+
+#### Evidence Crops Gallery
+
+The Evidence Crops section displays actual crop images extracted from the package in a grid layout. Clicking any thumbnail opens the native macOS Quick Look panel (`QLPreviewPanel`), which supports resizing, fullscreen, and navigation through all crops in the package.
+
+Quick Look integration uses the `QLPreviewPanelController` informal protocol on the window controller so the panel can properly find its controller through the responder chain, even though the inspector window is presented modally.
+
+#### File Organization
+
+Inspector source files live in `SVPSystemSupport/Inspector/`:
+
+| File | Responsibility |
+| --- | --- |
+| `SVPInspectorFormatting.swift` | Value formatting helpers, `SortValue`, `InspectorRow`, row sorting. |
+| `SVPInspectorSections.swift` | Section enum, sidebar, split view controller, error view, empty state. |
+| `SVPInspectorDetailViews.swift` | All detail views (Overview, Transcript, OCR, Colors, Scenes, Entities, Provenance, Index). |
+| `SVPEvidenceCrops.swift` | Evidence crops gallery, crop cell, and Quick Look data source. |
+| `SVPInspectorData.swift` | Data loading from SVP package via `SVPReader`. |
+| `SVPInspectorWindowPresenter.swift` | Window controller, toolbar, modal presentation, and Quick Look controller protocol. |
 
 ## Requirements
 

@@ -71,4 +71,36 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
             alert.runModal()
         }
     }
+
+    @objc(inspectSVPService:userData:error:)
+    func inspectSVPService(_ pasteboard: NSPasteboard, userData: NSString?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        SVPAppLogger.log("App received inspector service request")
+
+        guard let svpURL = SVPPasteboardReader.svpURL(from: pasteboard) else {
+            SVPAppLogger.log("App inspector service request contained no SVP file URL")
+            error.pointee = "No SVP file was provided."
+            return
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
+        showInspector(for: svpURL)
+    }
+
+    private func showInspector(for svpURL: URL) {
+        SVPAppLogger.log("App opening inspector for: \(svpURL.path)")
+        let data = SVPInspectorData.load(from: svpURL)
+
+        if let error = data.loadError {
+            SVPAppLogger.log("App inspector load failed: \(error)")
+            let alert = NSAlert()
+            alert.messageText = "Failed to open SVP Inspector"
+            alert.informativeText = error
+            alert.runModal()
+            return
+        }
+
+        let title = "\(svpURL.deletingPathExtension().lastPathComponent) — SVP Inspector"
+        let windowController = SVPInspectorWindowController(data: data, windowTitle: title)
+        windowController.presentModal()
+    }
 }
