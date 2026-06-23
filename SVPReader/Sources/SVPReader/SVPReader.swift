@@ -210,4 +210,37 @@ public final class SVPReader: @unchecked Sendable {
         try? FileManager.default.removeItem(at: tempDir)
         SVPLog.debug("Cleaned up temp dir: \(tempDir.path)")
     }
+
+    // MARK: - Inspector Support
+
+    public func hasEntry(_ name: String) -> Bool {
+        zipReader.hasEntry(name)
+    }
+
+    public var allEntryNames: [String] {
+        zipReader.entryNames
+    }
+
+    public func readEntryData(_ name: String) throws -> Data {
+        try zipReader.readEntry(name)
+    }
+
+    public func readJSONEntry(_ name: String) throws -> [String: Any] {
+        let data = try zipReader.readEntry(name)
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw SVPError.manifestParseFailed("JSON parse failed for \(name)")
+        }
+        return json
+    }
+
+    public func readJSONLEntry(_ name: String) throws -> [[String: Any]] {
+        let data = try zipReader.readEntry(name)
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw SVPError.ioError("\(name) is not UTF-8")
+        }
+        return text.split(whereSeparator: \.isNewline).compactMap { line in
+            guard let lineData = String(line).data(using: .utf8) else { return nil }
+            return (try? JSONSerialization.jsonObject(with: lineData)) as? [String: Any]
+        }
+    }
 }
