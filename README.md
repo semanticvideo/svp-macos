@@ -14,7 +14,6 @@ The app itself is intentionally small. It mainly acts as the installed container
 | `SVPReader/` | Local Swift package that validates and reads SVP packages. |
 | `scripts/postinstall` | Installer script that registers the app and extensions with Launch Services. |
 | `build-pkg.sh` | Release packaging script that builds the app and creates a `.pkg` installer. |
-| `VERIFICATION_REPORT.md` | Historical verification notes for the project. |
 
 ## Supported File Type
 
