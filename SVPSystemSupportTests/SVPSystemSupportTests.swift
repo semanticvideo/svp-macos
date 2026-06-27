@@ -54,6 +54,40 @@ final class SVPSystemSupportTests: XCTestCase {
         XCTAssertTrue(sampleTable.contains("parseTracks"))
     }
 
+    func testQuickLookPreviewUsesViewBasedPlayerPath() throws {
+        let previewSource = try readSource("SVPPreview/PreviewProvider.swift")
+        let resourceLoaderSource = try readSource("SVPPreview/SVPMediaResourceLoader.swift")
+        let infoPlist = try readSource("SVPPreview/Info.plist")
+
+        XCTAssertTrue(previewSource.contains("NSViewController"))
+        XCTAssertTrue(previewSource.contains("QLPreviewingController"))
+        XCTAssertTrue(previewSource.contains("preparePreviewOfFile(at url:"))
+        XCTAssertTrue(previewSource.contains("AVPlayerView"))
+        XCTAssertTrue(previewSource.contains("SVPMediaResourceLoader"))
+        XCTAssertTrue(previewSource.contains("asset.resourceLoader.setDelegate"))
+        XCTAssertTrue(previewSource.contains("AVURLAsset(url: mediaURL)"))
+        XCTAssertTrue(previewSource.contains("viewDidAppear"))
+        XCTAssertTrue(previewSource.contains("autoPlayIfNeeded"))
+        XCTAssertTrue(previewSource.contains("window.level.rawValue > 0"))
+        XCTAssertTrue(previewSource.contains("Timer.scheduledTimer"))
+        XCTAssertTrue(previewSource.contains("viewWillDisappear"))
+        XCTAssertTrue(previewSource.contains("viewDidDisappear"))
+        XCTAssertTrue(previewSource.contains("pausePreviewPlayback"))
+        XCTAssertTrue(previewSource.contains("tearDownPreviewPlayback"))
+        XCTAssertTrue(resourceLoaderSource.contains("AVAssetResourceLoaderDelegate"))
+        XCTAssertTrue(resourceLoaderSource.contains("readMediaDataRange"))
+        XCTAssertTrue(resourceLoaderSource.contains("respond(with: data)"))
+        XCTAssertFalse(previewSource.contains("QLPreviewProvider"))
+        XCTAssertFalse(previewSource.contains("providePreview(for:"))
+        XCTAssertFalse(previewSource.contains("materializePrimaryMedia"))
+        XCTAssertFalse(previewSource.contains("extractEntry"))
+        XCTAssertFalse(previewSource.contains("openAndMaterialize"))
+        XCTAssertFalse(resourceLoaderSource.contains("materializePrimaryMedia"))
+        XCTAssertFalse(resourceLoaderSource.contains("extractEntry"))
+        XCTAssertFalse(resourceLoaderSource.contains("openAndMaterialize"))
+        XCTAssertFalse(infoPlist.contains("QLIsDataBasedPreview"))
+    }
+
     private func readSource(_ relativePath: String) throws -> String {
         let url = repositoryRoot.appendingPathComponent(relativePath)
         return try String(contentsOf: url, encoding: .utf8)

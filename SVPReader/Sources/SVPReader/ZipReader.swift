@@ -28,6 +28,7 @@ enum ZipReaderError: Error {
 }
 
 final class ZipReader {
+    private let url: URL
     private let fileHandle: FileHandle
     private let fileLength: UInt64
     private let centralDirEntries: [ZipCentralDirEntry]
@@ -37,6 +38,7 @@ final class ZipReader {
         guard let fh = try? FileHandle(forReadingFrom: url) else {
             throw ZipReaderError.fileOpenFailed("Cannot open file: \(url.path)")
         }
+        self.url = url
         self.fileHandle = fh
         let length = (try? fh.seekToEnd()) ?? 0
         self.fileLength = length
@@ -89,6 +91,33 @@ final class ZipReader {
         }
         let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
         return entry.localHeaderOffset + UInt64(localHeader.dataOffset)
+    }
+
+    func readStoredEntryRange(_ name: String, offset: UInt64, length: Int) throws -> Data {
+        guard length > 0 else { return Data() }
+        guard let entry = entryMap[name] else {
+            throw ZipReaderError.entryNotFound(name)
+        }
+        guard entry.compressionMethod == 0 else {
+            throw ZipReaderError.readFailed("Cannot read byte ranges from compressed entry: \(name)")
+        }
+
+        let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
+        let entrySize = resolveSize(local: localHeader, central: entry)
+        guard offset < entrySize else { return Data() }
+
+        let bytesToRead = Int(min(UInt64(length), entrySize - offset))
+        let dataOffset = entry.localHeaderOffset + UInt64(localHeader.dataOffset) + offset
+
+        guard let rangeHandle = try? FileHandle(forReadingFrom: url) else {
+            throw ZipReaderError.fileOpenFailed("Cannot open file: \(url.path)")
+        }
+        defer {
+            try? rangeHandle.close()
+        }
+
+        try rangeHandle.seek(toOffset: dataOffset)
+        return try rangeHandle.read(upToCount: bytesToRead) ?? Data()
     }
 
     private func readEntryData(entry: ZipCentralDirEntry) throws -> Data {
