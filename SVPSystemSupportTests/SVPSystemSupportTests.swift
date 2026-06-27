@@ -10,29 +10,52 @@ import XCTest
 
 final class SVPSystemSupportTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    private var repositoryRoot: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testMediaReaderKeepsProcessWideMaterializationThrottle() throws {
+        let source = try readSource("SVPMediaReader/SVPFormatReader.swift")
+
+        XCTAssertTrue(source.contains("InterprocessMaterializationLock"))
+        XCTAssertTrue(source.contains("svp-media-reader-materialize.lock"))
+        XCTAssertTrue(source.contains("LOCK_EX | LOCK_NB"))
+        XCTAssertTrue(source.contains("Another SVPMediaReader process is materializing media"))
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-        // XCTest Documentation
-        // https://developer.apple.com/documentation/xctest
+    func testMediaReaderDoesNotUseEagerSampleBufferLoading() throws {
+        let formatReader = try readSource("SVPMediaReader/SVPFormatReader.swift")
+        let cursorHeader = try readSource("SVPMediaReader/SVPSampleCursorObjC.h")
+        let cursorImplementation = try readSource("SVPMediaReader/SVPSampleCursorObjC.m")
+
+        XCTAssertFalse(formatReader.contains("SVPReadAllSampleBuffers"))
+        XCTAssertFalse(cursorHeader.contains("SVPReadAllSampleBuffers"))
+        XCTAssertFalse(cursorImplementation.contains("copyNextSampleBuffer"))
+        XCTAssertFalse(cursorImplementation.contains("AVAssetReaderTrackOutput"))
+        XCTAssertTrue(cursorImplementation.contains("sampleLocationReturningError"))
+        XCTAssertTrue(cursorImplementation.contains("MESampleLocation"))
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+    func testMediaReaderInitializesFromMP4MetadataInsteadOfFullMediaData() throws {
+        let formatReader = try readSource("SVPMediaReader/SVPFormatReader.swift")
+        let initWriter = try readSource("SVPMediaReader/SVPMP4InitializationSegmentWriter.swift")
+        let sampleTable = try readSource("SVPMediaReader/SVPMP4SampleTable.swift")
+
+        XCTAssertTrue(formatReader.contains("SVPMP4InitializationSegmentWriter.write"))
+        XCTAssertTrue(formatReader.contains("mediaDataOffset"))
+        XCTAssertTrue(formatReader.contains("SVPMP4SampleTableParser"))
+        XCTAssertFalse(formatReader.contains("reader.readMediaData"))
+
+        XCTAssertTrue(initWriter.contains("box.type == \"ftyp\" || box.type == \"moov\""))
+        XCTAssertFalse(initWriter.contains("box.type == \"mdat\""))
+        XCTAssertTrue(sampleTable.contains("readMovieBox"))
+        XCTAssertTrue(sampleTable.contains("parseTracks"))
     }
 
+    private func readSource(_ relativePath: String) throws -> String {
+        let url = repositoryRoot.appendingPathComponent(relativePath)
+        return try String(contentsOf: url, encoding: .utf8)
+    }
 }
