@@ -8,13 +8,19 @@ NS_ASSUME_NONNULL_BEGIN
 // Helper to catch ObjC exceptions from Swift
 BOOL svpObjCTry(void(NS_NOESCAPE ^block)(void), NSError **error);
 
-// Helper to read all sample buffers from an AVAssetTrack using AVAssetReader
-// This must be in ObjC to properly catch ObjC exceptions
-NSArray *SVPReadAllSampleBuffers(AVURLAsset *asset, AVAssetTrack *track, NSError **error);
+@interface SVPSampleRecord : NSObject
+@property (nonatomic, assign) uint64_t offset;
+@property (nonatomic, assign) uint64_t size;
+@property (nonatomic, assign) CMTime pts;
+@property (nonatomic, assign) CMTime dts;
+@property (nonatomic, assign) CMTime duration;
+@property (nonatomic, assign) BOOL sync;
+@end
 
 @interface SVPSampleCursorObjC : NSObject <MESampleCursor>
 
-- (instancetype)initWithSampleBuffers:(NSArray *)sampleBuffers
+- (instancetype)initWithByteSource:(MEByteSource *)byteSource
+                            samples:(NSArray *)samples
                             trackID:(CMPersistentTrackID)trackID
                     minFrameDuration:(CMTime)minFrameDuration
                    formatDescription:(CMFormatDescriptionRef _Nullable)formatDesc

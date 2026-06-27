@@ -8,19 +8,21 @@ final class SVPTrackReader: NSObject, METrackReader {
 
     private let avAsset: AVURLAsset
     private let avTrack: AVAssetTrack
+    private let byteSource: MEByteSource
+    private let sampleRecords: [SVPSampleRecord]
     private let trackID: CMPersistentTrackID
-    private let preloadedSamples: [CMSampleBuffer]
     private var totalDuration: CMTime = .zero
     private var minFrameDuration: CMTime = .invalid
     private var formatDescription: CMFormatDescription?
 
-    init(avAsset: AVURLAsset, avTrack: AVAssetTrack, trackID: CMPersistentTrackID, preloadedSamples: [CMSampleBuffer]) {
+    init(avAsset: AVURLAsset, avTrack: AVAssetTrack, byteSource: MEByteSource, sampleRecords: [SVPSampleRecord], trackID: CMPersistentTrackID) {
         self.avAsset = avAsset
         self.avTrack = avTrack
+        self.byteSource = byteSource
+        self.sampleRecords = sampleRecords
         self.trackID = trackID
-        self.preloadedSamples = preloadedSamples
         super.init()
-        svpMEReaderLogger.info("SVPTrackReader init: trackID=\(trackID), mediaType=\(avTrack.mediaType.rawValue, privacy: .public), samples=\(preloadedSamples.count, privacy: .public)")
+        svpMEReaderLogger.info("SVPTrackReader init: trackID=\(trackID), mediaType=\(avTrack.mediaType.rawValue, privacy: .public), sampleRecords=\(sampleRecords.count, privacy: .public)")
     }
 
     private var propertiesLoaded = false
@@ -82,7 +84,8 @@ final class SVPTrackReader: NSObject, METrackReader {
 
     private func makeCursor() -> SVPSampleCursorObjC {
         return SVPSampleCursorObjC(
-            sampleBuffers: preloadedSamples,
+            byteSource: byteSource,
+            samples: sampleRecords,
             trackID: trackID,
             minFrameDuration: minFrameDuration,
             formatDescription: formatDescription,

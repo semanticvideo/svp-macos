@@ -4,22 +4,52 @@ import AVFoundation
 import CoreMedia
 import SVPReader
 import os
+import Darwin
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
 
 final class SVPFormatReader: NSObject, MEFormatReader {
 
+    private let byteSource: MEByteSource
+    private let totalLength: Int64
     private var tempDir: URL?
     private var mediaURL: URL?
     private var avAsset: AVURLAsset?
+    private var sampleTablesByMediaType: [AVMediaType: [[SVPSampleRecord]]] = [:]
+    private let materializationLock = NSLock()
 
     init(byteSource: MEByteSource) throws {
+        self.byteSource = byteSource
+        self.totalLength = byteSource.fileLength
         super.init()
 
         svpMEReaderLogger.info("SVPFormatReader init, fileName: \(byteSource.fileName, privacy: .public), fileLength: \(byteSource.fileLength, privacy: .public)")
 
-        let totalLength = byteSource.fileLength
-        guard totalLength > 0 else {
+        guard self.totalLength > 0 else {
             svpMEReaderLogger.error("ByteSource has zero length")
             throw SVPError.notSVPFile("Empty file")
+        }
+
+        svpMEReaderLogger.info("SVPFormatReader initialized without materializing media")
+    }
+
+    private func loadAssetIfNeeded() throws -> AVURLAsset {
+        materializationLock.lock()
+        defer {
+            materializationLock.unlock()
+        }
+
+        if let avAsset {
+            return avAsset
+        }
+
+        let interprocessLock = try SVPFormatReader.InterprocessMaterializationLock()
+        defer {
+            interprocessLock.unlock()
         }
 
         let dir = FileManager.default.temporaryDirectory
@@ -28,10 +58,9 @@ final class SVPFormatReader: NSObject, MEFormatReader {
 
         let svpTempURL = dir.appendingPathComponent("source.svp")
 
-        let svpData = try SVPFormatReader.readAllData(from: byteSource, length: totalLength)
-        try svpData.write(to: svpTempURL)
+        let bytesWritten = try SVPFormatReader.writeAllData(from: byteSource, length: totalLength, to: svpTempURL)
 
-        svpMEReaderLogger.info("Wrote \(svpData.count, privacy: .public) bytes to temp SVP file")
+        svpMEReaderLogger.info("Wrote \(bytesWritten, privacy: .public) bytes to temp SVP file")
 
         let reader = try SVPReader(url: svpTempURL)
         try reader.validateSVP()
@@ -41,37 +70,99 @@ final class SVPFormatReader: NSObject, MEFormatReader {
 
         let mediaInfo = try reader.locatePrimaryMediaAsset()
         svpMEReaderLogger.info("Primary media: \(mediaInfo.mediaPath, privacy: .public), ext=\(mediaInfo.fileExtension, privacy: .public), size=\(mediaInfo.uncompressedSize, privacy: .public)")
+        let mediaDataOffset = try reader.mediaDataOffset(mediaInfo)
 
-        let destURL = dir.appendingPathComponent(mediaInfo.mediaFileName)
-        let mediaData = try reader.readMediaData(mediaInfo)
-        try mediaData.write(to: destURL)
+        let destURL = dir.appendingPathComponent("init-\(mediaInfo.mediaFileName)")
+        try SVPMP4InitializationSegmentWriter.write(
+            from: svpTempURL,
+            mediaBaseOffset: mediaDataOffset,
+            mediaSize: mediaInfo.uncompressedSize,
+            to: destURL
+        )
 
         try? FileManager.default.removeItem(at: svpTempURL)
 
         self.tempDir = dir
         self.mediaURL = destURL
-        self.avAsset = AVURLAsset(url: destURL)
+        let asset = AVURLAsset(url: destURL)
+        self.avAsset = asset
+        self.sampleTablesByMediaType = try Self.loadSampleTables(from: destURL, mediaDataOffset: mediaDataOffset)
 
         svpMEReaderLogger.info("SVPFormatReader ready, media at: \(destURL.path, privacy: .public)")
+        return asset
     }
 
-    private static func readAllData(from byteSource: MEByteSource, length: Int64) throws -> Data {
+    private static func loadSampleTables(from mediaURL: URL, mediaDataOffset: UInt64) throws -> [AVMediaType: [[SVPSampleRecord]]] {
+        let parsedTracks = try SVPMP4SampleTableParser(url: mediaURL).parseTracks()
+        var tables: [AVMediaType: [[SVPSampleRecord]]] = [:]
+
+        for parsedTrack in parsedTracks {
+            let records = parsedTrack.samples.map { sample -> SVPSampleRecord in
+                let record = SVPSampleRecord()
+                record.offset = mediaDataOffset + sample.offset
+                record.size = UInt64(sample.size)
+                record.pts = sample.pts
+                record.dts = sample.dts
+                record.duration = sample.duration
+                record.sync = sample.isSync
+                return record
+            }
+            tables[parsedTrack.mediaType, default: []].append(records)
+            svpMEReaderLogger.info("Loaded MP4 sample table: mediaType=\(parsedTrack.mediaType.rawValue, privacy: .public), samples=\(records.count, privacy: .public)")
+        }
+
+        return tables
+    }
+
+    private final class InterprocessMaterializationLock {
+        private let fd: Int32
+
+        init() throws {
+            let lockURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("svp-media-reader-materialize.lock")
+            fd = open(lockURL.path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
+            guard fd >= 0 else {
+                throw SVPError.ioError("Cannot open materialization lock")
+            }
+
+            guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
+                close(fd)
+                throw SVPError.ioError("Another SVPMediaReader process is materializing media")
+            }
+        }
+
+        func unlock() {
+            flock(fd, LOCK_UN)
+            close(fd)
+        }
+    }
+
+    private static func writeAllData(from byteSource: MEByteSource, length: Int64, to destinationURL: URL) throws -> Int64 {
         let chunkSize: Int = 1_048_576
-        var data = Data()
         var offset: Int64 = 0
         let total = length
+
+        guard FileManager.default.createFile(atPath: destinationURL.path, contents: nil) else {
+            throw SVPError.ioError("Cannot create temp SVP file")
+        }
+        let outputHandle = try FileHandle(forWritingTo: destinationURL)
+        defer {
+            try? outputHandle.close()
+        }
 
         while offset < total {
             let remaining = total - offset
             let toRead = Int(min(Int64(chunkSize), remaining))
 
             let chunk = try readChunkSync(from: byteSource, offset: offset, length: toRead)
-            if chunk.isEmpty { break }
-            data.append(chunk)
+            if chunk.isEmpty {
+                throw SVPError.ioError("Unexpected EOF while reading SVP byte source")
+            }
+            outputHandle.write(chunk)
             offset += Int64(chunk.count)
         }
 
-        return data
+        return offset
     }
 
     private static func readChunkSync(from byteSource: MEByteSource, offset: Int64, length: Int) throws -> Data {
@@ -94,12 +185,8 @@ final class SVPFormatReader: NSObject, MEFormatReader {
 
     func loadFileInfo(completionHandler: @escaping @Sendable (MEFileInfo?, Error?) -> Void) {
         Task {
-            guard let avAsset = self.avAsset else {
-                completionHandler(nil, SVPError.ioError("No AV asset"))
-                return
-            }
-
             do {
+                let avAsset = try self.loadAssetIfNeeded()
                 let durationVar = try await avAsset.load(.duration)
                 let info = MEFileInfo()
                 info.duration = durationVar
@@ -116,12 +203,8 @@ final class SVPFormatReader: NSObject, MEFormatReader {
 
     func loadMetadata(completionHandler: @escaping @Sendable ([AVMetadataItem]?, Error?) -> Void) {
         Task {
-            guard let avAsset = self.avAsset else {
-                completionHandler(nil, SVPError.ioError("No AV asset"))
-                return
-            }
-
             do {
+                let avAsset = try self.loadAssetIfNeeded()
                 let metadata = try await avAsset.load(.commonMetadata)
                 svpMEReaderLogger.info("loadMetadata: \(metadata.count, privacy: .public) items")
                 completionHandler(metadata, nil)
@@ -134,37 +217,26 @@ final class SVPFormatReader: NSObject, MEFormatReader {
 
     func loadTrackReaders(completionHandler: @escaping @Sendable ([any METrackReader]?, Error?) -> Void) {
         Task {
-            guard let avAsset = self.avAsset else {
-                completionHandler(nil, SVPError.ioError("No AV asset"))
-                return
-            }
-
             do {
+                let avAsset = try self.loadAssetIfNeeded()
                 let videoTracks = try await avAsset.loadTracks(withMediaType: .video)
                 let audioTracks = try await avAsset.loadTracks(withMediaType: .audio)
                 let tracks = videoTracks + audioTracks
 
-                // Pre-read samples for each track using ObjC helper (AVAssetReader throws
-                // ObjC exceptions that can't be caught from Swift in MediaExtension sandbox)
-                var samplesByTrack: [Int: [CMSampleBuffer]] = [:]
-
-                for (index, track) in tracks.enumerated() {
-                    var readError: NSError?
-                    let nsSamples = SVPReadAllSampleBuffers(avAsset, track, &readError)
-                    if let readError {
-                        svpMEReaderLogger.error("SVPReadAllSampleBuffers failed for track \(index + 1): \(readError.localizedDescription, privacy: .public)")
-                        samplesByTrack[index] = []
-                    } else {
-                        let samples = (nsSamples as? [CMSampleBuffer]) ?? []
-                        samplesByTrack[index] = samples
-                        svpMEReaderLogger.info("Preloaded \(samples.count, privacy: .public) samples for track \(index + 1, privacy: .public)")
-                    }
-                }
-
                 var trackReaders: [any METrackReader] = []
+                var mediaTypeIndexes: [AVMediaType: Int] = [:]
                 for (index, track) in tracks.enumerated() {
-                    let samples = samplesByTrack[index] ?? []
-                    let trackReader = SVPTrackReader(avAsset: avAsset, avTrack: track, trackID: CMPersistentTrackID(index + 1), preloadedSamples: samples)
+                    let mediaType = track.mediaType
+                    let mediaTypeIndex = mediaTypeIndexes[mediaType, default: 0]
+                    mediaTypeIndexes[mediaType] = mediaTypeIndex + 1
+                    let sampleRecords = self.sampleTablesByMediaType[mediaType]?[safe: mediaTypeIndex] ?? []
+                    let trackReader = SVPTrackReader(
+                        avAsset: avAsset,
+                        avTrack: track,
+                        byteSource: self.byteSource,
+                        sampleRecords: sampleRecords,
+                        trackID: CMPersistentTrackID(index + 1)
+                    )
                     trackReaders.append(trackReader)
                 }
 
