@@ -28,8 +28,9 @@ enum ZipReaderError: Error {
 }
 
 final class ZipReader {
-    private let url: URL
     private let fileHandle: FileHandle
+    private let rangeFileHandle: FileHandle
+    private let rangeReadLock = NSLock()
     private let fileLength: UInt64
     private let centralDirEntries: [ZipCentralDirEntry]
     private let entryMap: [String: ZipCentralDirEntry]
@@ -38,8 +39,12 @@ final class ZipReader {
         guard let fh = try? FileHandle(forReadingFrom: url) else {
             throw ZipReaderError.fileOpenFailed("Cannot open file: \(url.path)")
         }
-        self.url = url
+        guard let rangeFH = try? FileHandle(forReadingFrom: url) else {
+            try? fh.close()
+            throw ZipReaderError.fileOpenFailed("Cannot open file for range reads: \(url.path)")
+        }
         self.fileHandle = fh
+        self.rangeFileHandle = rangeFH
         let length = (try? fh.seekToEnd()) ?? 0
         self.fileLength = length
 
@@ -50,6 +55,7 @@ final class ZipReader {
 
     deinit {
         try? fileHandle.close()
+        try? rangeFileHandle.close()
     }
 
     var entryNames: [String] {
@@ -102,6 +108,9 @@ final class ZipReader {
             throw ZipReaderError.readFailed("Cannot read byte ranges from compressed entry: \(name)")
         }
 
+        rangeReadLock.lock()
+        defer { rangeReadLock.unlock() }
+
         let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
         let entrySize = resolveSize(local: localHeader, central: entry)
         guard offset < entrySize else { return Data() }
@@ -109,15 +118,8 @@ final class ZipReader {
         let bytesToRead = Int(min(UInt64(length), entrySize - offset))
         let dataOffset = entry.localHeaderOffset + UInt64(localHeader.dataOffset) + offset
 
-        guard let rangeHandle = try? FileHandle(forReadingFrom: url) else {
-            throw ZipReaderError.fileOpenFailed("Cannot open file: \(url.path)")
-        }
-        defer {
-            try? rangeHandle.close()
-        }
-
-        try rangeHandle.seek(toOffset: dataOffset)
-        return try rangeHandle.read(upToCount: bytesToRead) ?? Data()
+        try rangeFileHandle.seek(toOffset: dataOffset)
+        return try rangeFileHandle.read(upToCount: bytesToRead) ?? Data()
     }
 
     private func readEntryData(entry: ZipCentralDirEntry) throws -> Data {
