@@ -4,7 +4,6 @@ import AVFoundation
 import CoreMedia
 import SVPReader
 import os
-import Darwin
 
 private extension Array {
     subscript(safe index: Int) -> Element? {
@@ -45,11 +44,6 @@ final class SVPFormatReader: NSObject, MEFormatReader {
 
         if let avAsset {
             return avAsset
-        }
-
-        let interprocessLock = try SVPFormatReader.InterprocessMaterializationLock()
-        defer {
-            interprocessLock.unlock()
         }
 
         let dir = FileManager.default.temporaryDirectory
@@ -112,29 +106,6 @@ final class SVPFormatReader: NSObject, MEFormatReader {
         }
 
         return tables
-    }
-
-    private final class InterprocessMaterializationLock {
-        private let fd: Int32
-
-        init() throws {
-            let lockURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("svp-media-reader-materialize.lock")
-            fd = open(lockURL.path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
-            guard fd >= 0 else {
-                throw SVPError.ioError("Cannot open materialization lock")
-            }
-
-            guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
-                close(fd)
-                throw SVPError.ioError("Another SVPMediaReader process is materializing media")
-            }
-        }
-
-        func unlock() {
-            flock(fd, LOCK_UN)
-            close(fd)
-        }
     }
 
     private static func writeAllData(from byteSource: MEByteSource, length: Int64, to destinationURL: URL) throws -> Int64 {
