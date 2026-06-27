@@ -221,7 +221,43 @@ final class SVPFormatReader: NSObject, MEFormatReader {
                 let avAsset = try self.loadAssetIfNeeded()
                 let videoTracks = try await avAsset.loadTracks(withMediaType: .video)
                 let audioTracks = try await avAsset.loadTracks(withMediaType: .audio)
-                let tracks = videoTracks + audioTracks
+
+                // Filter to only enabled tracks to prevent disabled audio tracks
+                // (e.g. secondary spatial/ambisonic tracks on iPhone video) from
+                // being played simultaneously, which causes a phase doubling effect.
+                // If isEnabled cannot be loaded for a track, default to including it.
+                var enabledVideoTracks: [AVAssetTrack] = []
+                for track in videoTracks {
+                    var isEnabled = true
+                    do {
+                        isEnabled = try await track.load(.isEnabled)
+                    } catch {
+                        svpMEReaderLogger.warning("Failed to load isEnabled for video track, defaulting to enabled: \(String(describing: error), privacy: .public)")
+                    }
+                    if isEnabled { enabledVideoTracks.append(track) }
+                }
+
+                var enabledAudioTracks: [AVAssetTrack] = []
+                for track in audioTracks {
+                    var isEnabled = true
+                    do {
+                        isEnabled = try await track.load(.isEnabled)
+                    } catch {
+                        svpMEReaderLogger.warning("Failed to load isEnabled for audio track, defaulting to enabled: \(String(describing: error), privacy: .public)")
+                    }
+                    if isEnabled { enabledAudioTracks.append(track) }
+                }
+
+                // Fallback: if no enabled tracks of a type, use all tracks of that type
+                // to avoid silent playback for edge-case files with incorrect flags.
+                if enabledVideoTracks.isEmpty && !videoTracks.isEmpty {
+                    enabledVideoTracks = videoTracks
+                }
+                if enabledAudioTracks.isEmpty && !audioTracks.isEmpty {
+                    enabledAudioTracks = audioTracks
+                }
+
+                let tracks = enabledVideoTracks + enabledAudioTracks
 
                 var trackReaders: [any METrackReader] = []
                 var mediaTypeIndexes: [AVMediaType: Int] = [:]
