@@ -76,6 +76,21 @@ final class ZipReader {
         return try readEntryData(entry: entry)
     }
 
+    func extractEntry(_ name: String, to destinationURL: URL, bufferSize: Int = 1_048_576) throws {
+        guard let entry = entryMap[name] else {
+            throw ZipReaderError.entryNotFound(name)
+        }
+        try extractEntryData(entry: entry, to: destinationURL, bufferSize: bufferSize)
+    }
+
+    func entryDataOffset(_ name: String) throws -> UInt64 {
+        guard let entry = entryMap[name] else {
+            throw ZipReaderError.entryNotFound(name)
+        }
+        let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
+        return entry.localHeaderOffset + UInt64(localHeader.dataOffset)
+    }
+
     private func readEntryData(entry: ZipCentralDirEntry) throws -> Data {
         let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
 
@@ -92,6 +107,102 @@ final class ZipReader {
             return try Self.inflate(data: compressedData, expectedSize: entry.uncompressedSize)
         } else {
             throw ZipReaderError.readFailed("Unsupported compression method: \(entry.compressionMethod)")
+        }
+    }
+
+    private func extractEntryData(entry: ZipCentralDirEntry, to destinationURL: URL, bufferSize: Int) throws {
+        let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
+        let dataOffset = entry.localHeaderOffset + UInt64(localHeader.dataOffset)
+
+        try? FileManager.default.removeItem(at: destinationURL)
+        guard FileManager.default.createFile(atPath: destinationURL.path, contents: nil) else {
+            throw ZipReaderError.readFailed("Cannot create destination: \(destinationURL.path)")
+        }
+        guard let outputHandle = try? FileHandle(forWritingTo: destinationURL) else {
+            throw ZipReaderError.readFailed("Cannot open destination: \(destinationURL.path)")
+        }
+        defer {
+            try? outputHandle.close()
+        }
+
+        try fileHandle.seek(toOffset: dataOffset)
+
+        if entry.compressionMethod == 0 {
+            let size = resolveSize(local: localHeader, central: entry)
+            try copyStoredEntry(byteCount: size, to: outputHandle, bufferSize: bufferSize)
+        } else if entry.compressionMethod == 8 {
+            let compressedSize = resolveCompressedSize(local: localHeader, central: entry)
+            try inflateEntry(compressedByteCount: compressedSize, to: outputHandle, bufferSize: bufferSize)
+        } else {
+            throw ZipReaderError.readFailed("Unsupported compression method: \(entry.compressionMethod)")
+        }
+    }
+
+    private func copyStoredEntry(byteCount: UInt64, to outputHandle: FileHandle, bufferSize: Int) throws {
+        var remaining = byteCount
+        while remaining > 0 {
+            let toRead = Int(min(UInt64(bufferSize), remaining))
+            guard let chunk = try fileHandle.read(upToCount: toRead), !chunk.isEmpty else {
+                throw ZipReaderError.readFailed("Unexpected EOF while extracting stored entry")
+            }
+            outputHandle.write(chunk)
+            remaining -= UInt64(chunk.count)
+        }
+    }
+
+    private func inflateEntry(compressedByteCount: UInt64, to outputHandle: FileHandle, bufferSize: Int) throws {
+        let stream = cZlib_inflate_init()
+        guard stream != nil else {
+            throw ZipReaderError.inflateFailed("inflate init failed")
+        }
+        defer { cZlib_inflate_end(stream) }
+
+        let inputChunkSize = max(1, bufferSize)
+        let outputChunkSize = 65_536
+        var remaining = compressedByteCount
+        var outputBuffer = [UInt8](repeating: 0, count: outputChunkSize)
+
+        while remaining > 0 {
+            let toRead = Int(min(UInt64(inputChunkSize), remaining))
+            guard let chunk = try fileHandle.read(upToCount: toRead), !chunk.isEmpty else {
+                throw ZipReaderError.readFailed("Unexpected EOF while extracting deflated entry")
+            }
+
+            var inputOffset = 0
+            while inputOffset < chunk.count {
+                var consumed = 0
+                var produced = 0
+
+                let result = chunk.withUnsafeBytes { inputPtr in
+                    outputBuffer.withUnsafeMutableBufferPointer { outputPtr in
+                        cZlib_inflate_process(
+                            stream,
+                            inputPtr.baseAddress?.advanced(by: inputOffset),
+                            chunk.count - inputOffset,
+                            outputPtr.baseAddress,
+                            outputChunkSize,
+                            &consumed,
+                            &produced
+                        )
+                    }
+                }
+
+                if result < 0 {
+                    throw ZipReaderError.inflateFailed("inflate process failed")
+                }
+
+                if produced > 0 {
+                    outputHandle.write(Data(outputBuffer[0..<produced]))
+                }
+
+                inputOffset += consumed
+
+                if consumed == 0 && produced == 0 {
+                    break
+                }
+            }
+
+            remaining -= UInt64(chunk.count)
         }
     }
 

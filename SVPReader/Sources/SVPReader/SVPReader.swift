@@ -120,6 +120,14 @@ public final class SVPReader: @unchecked Sendable {
         return try zipReader.readEntry(mediaInfo.mediaPath)
     }
 
+    public func extractMediaData(_ mediaInfo: SVPMediaInfo, to destinationURL: URL) throws {
+        try zipReader.extractEntry(mediaInfo.mediaPath, to: destinationURL)
+    }
+
+    public func mediaDataOffset(_ mediaInfo: SVPMediaInfo) throws -> UInt64 {
+        try zipReader.entryDataOffset(mediaInfo.mediaPath)
+    }
+
     public func readTranscriptText() throws -> String {
         let entryName = "transcript/words.jsonl"
         guard zipReader.hasEntry(entryName) else {
@@ -167,10 +175,9 @@ public final class SVPReader: @unchecked Sendable {
 
         SVPLog.info("Materializing \(mediaInfo.mediaPath) to \(destURL.path)")
 
-        let mediaData = try zipReader.readEntry(mediaInfo.mediaPath)
-        try mediaData.write(to: destURL)
+        try zipReader.extractEntry(mediaInfo.mediaPath, to: destURL)
 
-        SVPLog.info("Materialization complete: \(mediaData.count) bytes")
+        SVPLog.info("Materialization complete: \(destURL.path)")
 
         return destURL
     }
@@ -192,8 +199,7 @@ public final class SVPReader: @unchecked Sendable {
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         let destURL = tempDir.appendingPathComponent(mediaInfo.mediaFileName)
-        let mediaData = try zipReader.readEntry(mediaInfo.mediaPath)
-        try mediaData.write(to: destURL)
+        try zipReader.extractEntry(mediaInfo.mediaPath, to: destURL)
 
         SVPLog.info("SVP opened and materialized: \(destURL.path)")
 
