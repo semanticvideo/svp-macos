@@ -32,7 +32,7 @@ final class PreviewProvider: NSViewController, QLPreviewingController {
         containerView.frame = NSRect(x: 0, y: 0, width: 640, height: 360)
 
         playerView.controlsStyle = .inline
-        playerView.showsFullScreenToggleButton = true
+        playerView.showsFullScreenToggleButton = false
         containerView.playerView = playerView
 
         view = containerView
@@ -154,6 +154,7 @@ final class PreviewProvider: NSViewController, QLPreviewingController {
     private func updateControlsStyleForWindowContext(reason: String) {
         let isQuickLookPopup = view.window?.level.rawValue ?? 0 > 0
         let controlsStyle: AVPlayerViewControlsStyle = isQuickLookPopup ? .floating : .inline
+        playerView.showsFullScreenToggleButton = false
         guard playerView.controlsStyle != controlsStyle else { return }
 
         playerView.controlsStyle = controlsStyle
