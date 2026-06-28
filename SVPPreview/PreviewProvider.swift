@@ -15,6 +15,10 @@ final class PreviewProvider: NSViewController, QLPreviewingController {
     private var hasAutoPlayed = false
     private var visibilityTimer: Timer?
     private var wasVisibleInPopup = false
+    private var playerItemStatusObservation: NSKeyValueObservation?
+    private var playerTimeControlObservation: NSKeyValueObservation?
+    private var playerLikelyToKeepUpObservation: NSKeyValueObservation?
+    private var playbackDiagnosticsTimer: Timer?
 
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
@@ -53,7 +57,9 @@ final class PreviewProvider: NSViewController, QLPreviewingController {
             asset = AVURLAsset(url: mediaURL)
             asset.resourceLoader.setDelegate(loader, queue: resourceLoaderQueue)
             resourceLoader = loader
+            log("prepare url=\(url.path) media=\(mediaInfo.mediaFileName) bytes=\(mediaInfo.uncompressedSize)")
         } catch {
+            log("prepare-error url=\(url.path) error=\(error)")
             handler(error)
             return
         }
@@ -65,6 +71,7 @@ final class PreviewProvider: NSViewController, QLPreviewingController {
 
         self.playerItem = item
         self.player = player
+        startPlaybackDiagnostics(player: player, item: item)
         updatePlayerAspectRatio(from: asset)
 
         handler(nil)
@@ -122,6 +129,7 @@ final class PreviewProvider: NSViewController, QLPreviewingController {
         hasAutoPlayed = true
         wasVisibleInPopup = true
         player?.play()
+        log("play reason=\(reason)")
         startVisibilityTimer()
     }
 
@@ -138,6 +146,7 @@ final class PreviewProvider: NSViewController, QLPreviewingController {
             } else if !self.wasVisibleInPopup && isVisibleInPopup {
                 self.wasVisibleInPopup = true
                 self.player?.play()
+                self.log("play reason=visibilityTimer-visible")
             }
         }
     }
@@ -151,12 +160,20 @@ final class PreviewProvider: NSViewController, QLPreviewingController {
     }
 
     private func pausePreviewPlayback(reason: String) {
+        log("pause reason=\(reason)")
         player?.pause()
     }
 
     private func tearDownPreviewPlayback(reason: String) {
+        log("teardown reason=\(reason)")
         visibilityTimer?.invalidate()
         visibilityTimer = nil
+        playbackDiagnosticsTimer?.invalidate()
+        playbackDiagnosticsTimer = nil
+        playerItemStatusObservation = nil
+        playerTimeControlObservation = nil
+        playerLikelyToKeepUpObservation = nil
+        NotificationCenter.default.removeObserver(self)
         pausePreviewPlayback(reason: reason)
         player?.replaceCurrentItem(with: nil)
         playerView.player = nil
@@ -190,6 +207,127 @@ final class PreviewProvider: NSViewController, QLPreviewingController {
 
     deinit {
         tearDownPreviewPlayback(reason: "deinit")
+    }
+
+    private func startPlaybackDiagnostics(player: AVPlayer, item: AVPlayerItem) {
+        playerItemStatusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self, weak item] _, _ in
+            guard let self, let item else { return }
+            self.log(
+                "item-status status=\(Self.itemStatusDescription(item.status)) likelyToKeepUp=\(item.isPlaybackLikelyToKeepUp) loaded=\(Self.loadedRangesDescription(item.loadedTimeRanges)) error=\(String(describing: item.error))"
+            )
+        }
+
+        playerLikelyToKeepUpObservation = item.observe(\.isPlaybackLikelyToKeepUp, options: [.initial, .new]) { [weak self, weak item] _, _ in
+            guard let self, let item else { return }
+            self.log(
+                "item-keep-up likelyToKeepUp=\(item.isPlaybackLikelyToKeepUp) loaded=\(Self.loadedRangesDescription(item.loadedTimeRanges))"
+            )
+        }
+
+        playerTimeControlObservation = player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self, weak player] _, _ in
+            guard let self, let player else { return }
+            self.log(
+                "player-time-control status=\(Self.timeControlStatusDescription(player.timeControlStatus)) reason=\(String(describing: player.reasonForWaitingToPlay)) rate=\(player.rate)"
+            )
+        }
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerItemPlaybackStalled(_:)),
+            name: .AVPlayerItemPlaybackStalled,
+            object: item
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerItemFailedToPlayToEnd(_:)),
+            name: .AVPlayerItemFailedToPlayToEndTime,
+            object: item
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerItemNewAccessLog(_:)),
+            name: .AVPlayerItemNewAccessLogEntry,
+            object: item
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerItemNewErrorLog(_:)),
+            name: .AVPlayerItemNewErrorLogEntry,
+            object: item
+        )
+
+        playbackDiagnosticsTimer?.invalidate()
+        playbackDiagnosticsTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self, weak player, weak item] _ in
+            guard let self, let player, let item else { return }
+            self.log(
+                "heartbeat time=\(Self.formatTime(player.currentTime())) rate=\(player.rate) status=\(Self.timeControlStatusDescription(player.timeControlStatus)) likelyToKeepUp=\(item.isPlaybackLikelyToKeepUp) loaded=\(Self.loadedRangesDescription(item.loadedTimeRanges)) reason=\(String(describing: player.reasonForWaitingToPlay))"
+            )
+        }
+    }
+
+    @objc private func playerItemPlaybackStalled(_ notification: Notification) {
+        log("notification playback-stalled")
+    }
+
+    @objc private func playerItemFailedToPlayToEnd(_ notification: Notification) {
+        log("notification failed-to-play-to-end userInfo=\(notification.userInfo ?? [:])")
+    }
+
+    @objc private func playerItemNewAccessLog(_ notification: Notification) {
+        guard let event = playerItem?.accessLog()?.events.last else {
+            log("access-log empty")
+            return
+        }
+
+        log(
+            "access-log observedBitrate=\(event.observedBitrate) indicatedBitrate=\(event.indicatedBitrate) stalls=\(event.numberOfStalls) transferDuration=\(event.transferDuration) uri=\(event.uri ?? "nil")"
+        )
+    }
+
+    @objc private func playerItemNewErrorLog(_ notification: Notification) {
+        guard let event = playerItem?.errorLog()?.events.last else {
+            log("error-log empty")
+            return
+        }
+
+        log(
+            "error-log status=\(event.errorStatusCode) domain=\(event.errorDomain) comment=\(event.errorComment ?? "nil")"
+        )
+    }
+
+    private func log(_ message: String) {
+        fputs("SVPQL \(Date()) preview \(message)\n", stderr)
+        fflush(stderr)
+    }
+
+    private static func itemStatusDescription(_ status: AVPlayerItem.Status) -> String {
+        switch status {
+        case .unknown: return "unknown"
+        case .readyToPlay: return "readyToPlay"
+        case .failed: return "failed"
+        @unknown default: return "unknown-default"
+        }
+    }
+
+    private static func timeControlStatusDescription(_ status: AVPlayer.TimeControlStatus) -> String {
+        switch status {
+        case .paused: return "paused"
+        case .waitingToPlayAtSpecifiedRate: return "waiting"
+        case .playing: return "playing"
+        @unknown default: return "unknown-default"
+        }
+    }
+
+    private static func loadedRangesDescription(_ ranges: [NSValue]) -> String {
+        ranges.map { value in
+            let range = value.timeRangeValue
+            return "\(formatTime(range.start))+\(formatTime(range.duration))"
+        }.joined(separator: ",")
+    }
+
+    private static func formatTime(_ time: CMTime) -> String {
+        guard time.isNumeric else { return "nan" }
+        return String(format: "%.3f", CMTimeGetSeconds(time))
     }
 }
 
