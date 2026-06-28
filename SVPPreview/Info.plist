@@ -6,8 +6,6 @@
 	<dict>
 		<key>NSExtensionAttributes</key>
 		<dict>
-			<key>QLIsDataBasedPreview</key>
-			<true/>
 			<key>QLSupportedContentTypes</key>
 			<array>
 				<string>com.semanticvideo.svp</string>

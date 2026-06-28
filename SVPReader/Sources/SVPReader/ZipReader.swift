@@ -1,5 +1,6 @@
 import Foundation
 import CZlib
+import Darwin
 
 struct ZipCentralDirEntry {
     let fileName: String
@@ -28,7 +29,15 @@ enum ZipReaderError: Error {
 }
 
 final class ZipReader {
+    private struct StoredEntryRangeInfo {
+        let dataOffset: UInt64
+        let size: UInt64
+    }
+
     private let fileHandle: FileHandle
+    private let rangeFileHandle: FileHandle
+    private let rangeInfoLock = NSLock()
+    private var storedEntryRangeInfoCache: [String: StoredEntryRangeInfo] = [:]
     private let fileLength: UInt64
     private let centralDirEntries: [ZipCentralDirEntry]
     private let entryMap: [String: ZipCentralDirEntry]
@@ -37,7 +46,12 @@ final class ZipReader {
         guard let fh = try? FileHandle(forReadingFrom: url) else {
             throw ZipReaderError.fileOpenFailed("Cannot open file: \(url.path)")
         }
+        guard let rangeFH = try? FileHandle(forReadingFrom: url) else {
+            try? fh.close()
+            throw ZipReaderError.fileOpenFailed("Cannot open file for range reads: \(url.path)")
+        }
         self.fileHandle = fh
+        self.rangeFileHandle = rangeFH
         let length = (try? fh.seekToEnd()) ?? 0
         self.fileLength = length
 
@@ -48,6 +62,7 @@ final class ZipReader {
 
     deinit {
         try? fileHandle.close()
+        try? rangeFileHandle.close()
     }
 
     var entryNames: [String] {
@@ -89,6 +104,18 @@ final class ZipReader {
         }
         let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
         return entry.localHeaderOffset + UInt64(localHeader.dataOffset)
+    }
+
+    func readStoredEntryRange(_ name: String, offset: UInt64, length: Int) throws -> Data {
+        guard length > 0 else { return Data() }
+        let rangeInfo = try storedEntryRangeInfo(name)
+        let entrySize = rangeInfo.size
+        guard offset < entrySize else { return Data() }
+
+        let bytesToRead = Int(min(UInt64(length), entrySize - offset))
+        let dataOffset = rangeInfo.dataOffset + offset
+
+        return try preadData(offset: dataOffset, length: bytesToRead)
     }
 
     private func readEntryData(entry: ZipCentralDirEntry) throws -> Data {
@@ -210,6 +237,67 @@ final class ZipReader {
         guard let data = try fileHandle.read(upToCount: count) else {
             throw ZipReaderError.readFailed("read returned nil")
         }
+        return data
+    }
+
+    private func storedEntryRangeInfo(_ name: String) throws -> StoredEntryRangeInfo {
+        rangeInfoLock.lock()
+        defer { rangeInfoLock.unlock() }
+
+        if let cached = storedEntryRangeInfoCache[name] {
+            return cached
+        }
+
+        guard let entry = entryMap[name] else {
+            throw ZipReaderError.entryNotFound(name)
+        }
+        guard entry.compressionMethod == 0 else {
+            throw ZipReaderError.readFailed("Cannot read byte ranges from compressed entry: \(name)")
+        }
+
+        let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
+        let rangeInfo = StoredEntryRangeInfo(
+            dataOffset: entry.localHeaderOffset + UInt64(localHeader.dataOffset),
+            size: resolveSize(local: localHeader, central: entry)
+        )
+
+        storedEntryRangeInfoCache[name] = rangeInfo
+
+        return rangeInfo
+    }
+
+    private func preadData(offset: UInt64, length: Int) throws -> Data {
+        guard length > 0 else { return Data() }
+        guard offset <= UInt64(Int64.max) else {
+            throw ZipReaderError.readFailed("Range offset exceeds supported file offset")
+        }
+
+        var data = Data(count: length)
+        var totalRead = 0
+
+        while totalRead < length {
+            let readCount = data.withUnsafeMutableBytes { buffer in
+                pread(
+                    rangeFileHandle.fileDescriptor,
+                    buffer.baseAddress!.advanced(by: totalRead),
+                    length - totalRead,
+                    off_t(offset + UInt64(totalRead))
+                )
+            }
+
+            if readCount > 0 {
+                totalRead += readCount
+            } else if readCount == 0 {
+                break
+            } else if errno != EINTR {
+                throw ZipReaderError.readFailed("pread failed: \(String(cString: strerror(errno)))")
+            }
+        }
+
+        if totalRead < length {
+            data.removeSubrange(totalRead..<length)
+        }
+
         return data
     }
 

@@ -128,6 +128,10 @@ public final class SVPReader: @unchecked Sendable {
         try zipReader.entryDataOffset(mediaInfo.mediaPath)
     }
 
+    public func readMediaDataRange(_ mediaInfo: SVPMediaInfo, offset: UInt64, length: Int) throws -> Data {
+        try zipReader.readStoredEntryRange(mediaInfo.mediaPath, offset: offset, length: length)
+    }
+
     public func readTranscriptText() throws -> String {
         let entryName = "transcript/words.jsonl"
         guard zipReader.hasEntry(entryName) else {
