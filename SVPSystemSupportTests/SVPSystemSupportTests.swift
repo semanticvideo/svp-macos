@@ -54,6 +54,45 @@ final class SVPSystemSupportTests: XCTestCase {
         XCTAssertTrue(sampleTable.contains("parseTracks"))
     }
 
+    func testMediaReaderCleansMaterializationDirectoryWhenSetupFails() throws {
+        let formatReader = try readSource("SVPMediaReader/SVPFormatReader.swift")
+        let initWriter = try readSource("SVPMediaReader/SVPMP4InitializationSegmentWriter.swift")
+
+        XCTAssertTrue(formatReader.contains("self.tempDir = dir"))
+        XCTAssertTrue(formatReader.contains("var setupSucceeded = false"))
+        XCTAssertTrue(formatReader.contains("if !setupSucceeded"))
+        XCTAssertTrue(formatReader.contains("SVPReader.cleanupMaterializedMedia(at: dir)"))
+        XCTAssertTrue(formatReader.contains("self.tempDir = nil"))
+        XCTAssertTrue(formatReader.contains("setupSucceeded = true"))
+
+        XCTAssertTrue(initWriter.contains("var writeSucceeded = false"))
+        XCTAssertTrue(initWriter.contains("if !writeSucceeded"))
+        XCTAssertTrue(initWriter.contains("try? FileManager.default.removeItem(at: destinationURL)"))
+        XCTAssertTrue(initWriter.contains("writeSucceeded = true"))
+    }
+
+    func testMediaReaderRejectsCompressedMediaBeforeOffsetBasedInitWriter() throws {
+        let formatReader = try readSource("SVPMediaReader/SVPFormatReader.swift")
+
+        guard let compressedCheck = formatReader.range(of: "guard !mediaInfo.isCompressed else") else {
+            XCTFail("Missing compressed media guard")
+            return
+        }
+        guard let offsetLookup = formatReader.range(of: "let mediaDataOffset = try reader.mediaDataOffset(mediaInfo)") else {
+            XCTFail("Missing mediaDataOffset lookup")
+            return
+        }
+        guard let initWriterCall = formatReader.range(of: "SVPMP4InitializationSegmentWriter.write") else {
+            XCTFail("Missing init writer call")
+            return
+        }
+
+        XCTAssertLessThan(compressedCheck.lowerBound, offsetLookup.lowerBound)
+        XCTAssertLessThan(compressedCheck.lowerBound, initWriterCall.lowerBound)
+        XCTAssertTrue(formatReader.contains("SVPError.unsupportedCodec"))
+        XCTAssertTrue(formatReader.contains("stored media entries for offset-based playback"))
+    }
+
     func testQuickLookPreviewUsesViewBasedPlayerPath() throws {
         let previewSource = try readSource("SVPPreview/PreviewProvider.swift")
         let resourceLoaderSource = try readSource("SVPPreview/SVPMediaResourceLoader.swift")

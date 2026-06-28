@@ -11,6 +11,12 @@ enum SVPMP4InitializationSegmentWriter {
         guard FileManager.default.createFile(atPath: destinationURL.path, contents: nil) else {
             throw SVPMP4SampleTableError.invalidFile
         }
+        var writeSucceeded = false
+        defer {
+            if !writeSucceeded {
+                try? FileManager.default.removeItem(at: destinationURL)
+            }
+        }
         let outputHandle = try FileHandle(forWritingTo: destinationURL)
         defer {
             try? outputHandle.close()
@@ -36,6 +42,7 @@ enum SVPMP4InitializationSegmentWriter {
         if !wroteMovieBox {
             throw SVPMP4SampleTableError.invalidFile
         }
+        writeSucceeded = true
     }
 
     private struct TopLevelBoxHeader {

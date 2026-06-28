@@ -55,6 +55,16 @@ final class SVPFormatReader: NSObject, MEFormatReader {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("svp-me-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        self.tempDir = dir
+        var setupSucceeded = false
+        defer {
+            if !setupSucceeded {
+                SVPReader.cleanupMaterializedMedia(at: dir)
+                if self.tempDir == dir {
+                    self.tempDir = nil
+                }
+            }
+        }
 
         let svpTempURL = dir.appendingPathComponent("source.svp")
 
@@ -70,6 +80,9 @@ final class SVPFormatReader: NSObject, MEFormatReader {
 
         let mediaInfo = try reader.locatePrimaryMediaAsset()
         svpMEReaderLogger.info("Primary media: \(mediaInfo.mediaPath, privacy: .public), ext=\(mediaInfo.fileExtension, privacy: .public), size=\(mediaInfo.uncompressedSize, privacy: .public)")
+        guard !mediaInfo.isCompressed else {
+            throw SVPError.unsupportedCodec("SVPMediaReader requires stored media entries for offset-based playback")
+        }
         let mediaDataOffset = try reader.mediaDataOffset(mediaInfo)
 
         let destURL = dir.appendingPathComponent("init-\(mediaInfo.mediaFileName)")
@@ -82,12 +95,12 @@ final class SVPFormatReader: NSObject, MEFormatReader {
 
         try? FileManager.default.removeItem(at: svpTempURL)
 
-        self.tempDir = dir
         self.mediaURL = destURL
         let asset = AVURLAsset(url: destURL)
         self.avAsset = asset
         self.sampleTablesByMediaType = try Self.loadSampleTables(from: destURL, mediaDataOffset: mediaDataOffset)
 
+        setupSucceeded = true
         svpMEReaderLogger.info("SVPFormatReader ready, media at: \(destURL.path, privacy: .public)")
         return asset
     }
