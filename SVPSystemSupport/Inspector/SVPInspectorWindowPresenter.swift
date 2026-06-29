@@ -9,6 +9,7 @@ final class SVPInspectorWindowController: NSWindowController {
     private let toolbarProvider: SVPInspectorToolbarProvider
     private var quickLookDataSource: QLPreviewPanelDataSource?
     private var quickLookStartIndex: Int = 0
+    var onClose: (() -> Void)?
 
     private enum Metrics {
         static let contentSize = NSSize(width: 900, height: 650)
@@ -49,10 +50,8 @@ final class SVPInspectorWindowController: NSWindowController {
         fatalError("SVPInspectorWindowController does not support storyboards.")
     }
 
-    func presentModal() {
-        guard let window else { return }
-        NSApp.runModal(for: window)
-        window.orderOut(nil)
+    func present() {
+        showWindow(nil)
     }
 
     // MARK: - Quick Look
@@ -91,7 +90,7 @@ extension SVPInspectorWindowController {
 
 extension SVPInspectorWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
-        NSApp.stopModal(withCode: .cancel)
+        onClose?()
     }
 }
 

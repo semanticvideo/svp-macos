@@ -4,6 +4,7 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
     private let videoExtractor = SVPVideoExtractor()
     private let transcriptLoader = SVPTranscriptLoader()
     private let transcriptPresenter = SVPTranscriptWindowPresenter()
+    private var inspectorWindowControllers: [SVPInspectorWindowController] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         SVPAppLogger.log("App did finish launching")
@@ -101,6 +102,11 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
 
         let title = "\(svpURL.deletingPathExtension().lastPathComponent) — SVP Inspector"
         let windowController = SVPInspectorWindowController(data: data, windowTitle: title)
-        windowController.presentModal()
+        windowController.onClose = { [weak self, weak windowController] in
+            guard let windowController else { return }
+            self?.inspectorWindowControllers.removeAll { $0 === windowController }
+        }
+        inspectorWindowControllers.append(windowController)
+        windowController.present()
     }
 }

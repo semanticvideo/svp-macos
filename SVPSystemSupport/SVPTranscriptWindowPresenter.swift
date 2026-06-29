@@ -1,6 +1,8 @@
 import AppKit
 
 final class SVPTranscriptWindowPresenter: NSObject, NSWindowDelegate {
+    private var windows: [NSWindow] = []
+
     func present(title: String, text: String) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 560, height: 360),
@@ -54,7 +56,7 @@ final class SVPTranscriptWindowPresenter: NSObject, NSWindowDelegate {
 
         scrollView.documentView = textView
 
-        let doneButton = NSButton(title: "Done", target: self, action: #selector(transcriptWindowDone))
+        let doneButton = NSButton(title: "Done", target: self, action: #selector(transcriptWindowDone(_:)))
         doneButton.keyEquivalent = "\r"
         doneButton.translatesAutoresizingMaskIntoConstraints = false
 
@@ -82,15 +84,16 @@ final class SVPTranscriptWindowPresenter: NSObject, NSWindowDelegate {
             doneButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -14),
         ])
 
-        NSApp.runModal(for: window)
-        window.orderOut(nil)
+        windows.append(window)
+        window.makeKeyAndOrderFront(nil)
     }
 
-    @objc private func transcriptWindowDone() {
-        NSApp.stopModal(withCode: .OK)
+    @objc private func transcriptWindowDone(_ sender: NSButton) {
+        sender.window?.performClose(nil)
     }
 
     func windowWillClose(_ notification: Notification) {
-        NSApp.stopModal(withCode: .cancel)
+        guard let window = notification.object as? NSWindow else { return }
+        windows.removeAll { $0 === window }
     }
 }
