@@ -1,6 +1,6 @@
 # SVP System Support
 
-SVP System Support adds macOS support for Semantic Video Package (`.svp`) files. It registers the `.svp` file type, provides Quick Look previews, exposes SVP media through a MediaExtension format reader, and includes Finder services for extracting the embedded video or viewing transcript text.
+SVP System Support adds macOS support for Semantic Video Package (`.svp`) files. It registers the `.svp` file type, provides Quick Look previews, exposes SVP media through a MediaExtension format reader, and includes three Finder services for extracting the embedded video, viewing transcript text, and inspecting package contents.
 
 The app itself is intentionally small. It mainly acts as the installed container for the system integrations, while the reusable SVP parsing work lives in the `SVPReader` Swift package.
 
@@ -8,10 +8,10 @@ The app itself is intentionally small. It mainly acts as the installed container
 
 | Path | Purpose |
 | --- | --- |
-| `svp-system-support/` | Host macOS app. Registers the SVP file type and provides Finder service actions. |
-| `svp-preview/` | Quick Look preview extension for `.svp` files. |
-| `svp-media-reader/` | MediaExtension format reader for system-level media access. |
-| `SVPSystemSupport/Inspector/` | SVP Inspector — modal window for browsing package contents. |
+| `SVPSystemSupport/` | Host macOS app. Registers the SVP file type and provides Finder service actions. |
+| `SVPPreview/` | Quick Look preview extension for `.svp` files. |
+| `SVPMediaReader/` | MediaExtension format reader for system-level media access. |
+| `SVPSystemSupport/Inspector/` | SVP Inspector — window for browsing package contents. |
 | `SVPReader/` | Local Swift package that validates and reads SVP packages. |
 | `scripts/postinstall` | Installer script that registers the app and extensions with Launch Services. |
 | `build-pkg.sh` | Release packaging script that builds the app and creates a `.pkg` installer. |
@@ -70,10 +70,10 @@ Each JSON Lines record is expected to include a `text` value. The app joins thos
 
 ```mermaid
 flowchart TD
-    Finder["Finder / Quick Look / QuickTime"] --> HostApp["svp-system-support.app"]
+    Finder["Finder / Quick Look / QuickTime"] --> HostApp["SVPSystemSupport.app"]
     HostApp --> Services["Finder Services"]
-    HostApp --> Preview["svp-preview.appex"]
-    HostApp --> MediaExtension["svp-media-reader.appex"]
+    HostApp --> Preview["SVPPreview.appex"]
+    HostApp --> MediaExtension["SVPMediaReader.appex"]
     Services --> Reader["SVPReader package"]
     Preview --> Reader
     MediaExtension --> Reader
@@ -102,20 +102,21 @@ The package avoids a libzip dependency. ZIP central directory parsing is impleme
 
 ### Host App
 
-The host app lives in `svp-system-support/`. It is an agent-style AppKit app with `LSUIElement` enabled, so it does not behave like a normal document editor.
+The host app lives in `SVPSystemSupport/`. It is an agent-style AppKit app with `LSUIElement` enabled, so it does not behave like a normal document editor.
 
 It provides:
 
 - File type registration for `.svp`.
 - Finder service: `Extract Video from SVP`.
 - Finder service: `Show SVP Transcript`.
+- Finder service: `SVP Inspector`.
 - Open-file handling for `.svp` files.
 
 When extracting video, the app asks the user where to save the embedded media file, writes it there, and reveals the result in Finder.
 
 ### Quick Look Extension
 
-The Quick Look extension lives in `svp-preview/`.
+The Quick Look extension lives in `SVPPreview/`.
 
 It:
 
@@ -126,7 +127,7 @@ It:
 
 ### MediaExtension Format Reader
 
-The MediaExtension lives in `svp-media-reader/`.
+The MediaExtension lives in `SVPMediaReader/`.
 
 It:
 
@@ -141,7 +142,7 @@ Sample cursor behavior is implemented in Objective-C in `SVPSampleCursorObjC.m` 
 
 ### SVP Inspector
 
-The SVP Inspector is a modal window that lets you browse the full contents of an SVP package without writing any files to disk. It opens through a Finder service when you right-click a `.svp` file and select **Inspect SVP Package**.
+The SVP Inspector is a window that lets you browse the full contents of an SVP package without writing any files to disk. It opens through a Finder service when you right-click a `.svp` file and select **SVP Inspector**.
 
 #### Layout
 
@@ -172,7 +173,7 @@ All tables support click-to-sort column headers. Clicking a column header sorts 
 
 The Evidence Crops section displays actual crop images extracted from the package in a grid layout. Clicking any thumbnail opens the native macOS Quick Look panel (`QLPreviewPanel`), which supports resizing, fullscreen, and navigation through all crops in the package.
 
-Quick Look integration uses the `QLPreviewPanelController` informal protocol on the window controller so the panel can properly find its controller through the responder chain, even though the inspector window is presented modally.
+Quick Look integration uses the `QLPreviewPanelController` informal protocol on the window controller so the panel can properly find its controller through the responder chain.
 
 #### File Organization
 
@@ -185,7 +186,7 @@ Inspector source files live in `SVPSystemSupport/Inspector/`:
 | `SVPInspectorDetailViews.swift` | All detail views (Overview, Transcript, OCR, Colors, Scenes, Entities, Provenance, Index). |
 | `SVPEvidenceCrops.swift` | Evidence crops gallery, crop cell, and Quick Look data source. |
 | `SVPInspectorData.swift` | Data loading from SVP package via `SVPReader`. |
-| `SVPInspectorWindowPresenter.swift` | Window controller, toolbar, modal presentation, and Quick Look controller protocol. |
+| `SVPInspectorWindowPresenter.swift` | Window controller, toolbar, window presentation, and Quick Look controller protocol. |
 
 ## Requirements
 
@@ -209,8 +210,8 @@ Build the app target:
 
 ```bash
 xcodebuild \
-  -project svp-system-support.xcodeproj \
-  -scheme svp-system-support \
+  -project SVPSystemSupport.xcodeproj \
+  -scheme SVPSystemSupport \
   -configuration Debug \
   build
 ```
@@ -237,9 +238,9 @@ sudo installer -pkg build/SVPSystemSupport.pkg -target /
 
 The post-install script registers:
 
-- `/Applications/svp-system-support.app`
-- `/Applications/svp-system-support.app/Contents/PlugIns/svp-preview.appex`
-- `/Applications/svp-system-support.app/Contents/PlugIns/svp-media-reader.appex`
+- `/Applications/SVPSystemSupport.app`
+- `/Applications/SVPSystemSupport.app/Contents/PlugIns/SVPPreview.appex`
+- `/Applications/SVPSystemSupport.app/Contents/PlugIns/SVPMediaReader.appex`
 
 You may need to log out and back in before Finder, Quick Look, and MediaExtension fully pick up the new registrations.
 
@@ -330,7 +331,18 @@ This service:
 1. Reads the selected `.svp` file.
 2. Validates the package.
 3. Reads `transcript/words.jsonl`.
-4. Displays joined transcript text in a simple macOS alert.
+4. Displays joined transcript text in a scrollable window with a Done button.
+
+### SVP Inspector
+
+This service:
+
+1. Reads the selected `.svp` file.
+2. Validates the package.
+3. Loads all package contents through `SVPReader`.
+4. Opens an inspector window with a SwiftUI sidebar and detail pane for browsing metadata, transcript data, OCR/text, evidence crops, colors, scenes, entities, provenance, and index summary.
+
+Both the Inspector and Transcript windows open as regular non-modal windows, so you can have both open at the same time from the Finder right-click menu.
 
 ## Temporary Files
 
@@ -359,7 +371,7 @@ If the type still does not appear, log out and back in.
 
 ### Quick Look does not update after installing
 
-Quick Look and Launch Services can cache extension state. Try logging out and back in after installing. Also confirm the app and extension bundles exist under `/Applications/svp-system-support.app/Contents/PlugIns/`.
+Quick Look and Launch Services can cache extension state. Try logging out and back in after installing. Also confirm the app and extension bundles exist under `/Applications/SVPSystemSupport.app/Contents/PlugIns/`.
 
 ### MediaExtension does not load
 
