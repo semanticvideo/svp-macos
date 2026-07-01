@@ -1,6 +1,6 @@
 # SVP System Support
 
-SVP System Support adds macOS support for Semantic Video Package (`.svp`) files. It registers the `.svp` file type, provides Quick Look previews, exposes SVP media through a MediaExtension format reader, and includes three Finder services for extracting the embedded video, viewing transcript text, and inspecting package contents.
+SVP System Support adds macOS support for Semantic Video Package (`.svp`) and Semantic Video Package Interlace (`.svpi`) files. It registers both file types, provides Quick Look previews for `.svp`, exposes SVP media through a MediaExtension format reader, and includes Finder services for extracting embedded video (SVP only), viewing transcript text, and inspecting package contents.
 
 The app itself is intentionally small. It mainly acts as the installed container for the system integrations, while the reusable SVP parsing work lives in the `SVPReader` Swift package.
 
@@ -16,9 +16,11 @@ The app itself is intentionally small. It mainly acts as the installed container
 | `scripts/postinstall` | Installer script that registers the app and extensions with Launch Services. |
 | `build-pkg.sh` | Release packaging script that builds the app and creates a `.pkg` installer. |
 
-## Supported File Type
+## Supported File Types
 
-This project registers and handles:
+This project registers and handles two formats:
+
+### SVP
 
 | Property | Value |
 | --- | --- |
@@ -27,7 +29,18 @@ This project registers and handles:
 | MIME type | `application/vnd.svp+zip` |
 | Description | Semantic Video Package |
 
-The app and MediaExtension declare this type in their `Info.plist` files.
+### SVPI
+
+| Property | Value |
+| --- | --- |
+| File extension | `.svpi` |
+| UTType | `com.semanticvideo.svpi` |
+| MIME type | `application/vnd.svp.interlace+zip` |
+| Description | Semantic Video Package Interlace |
+
+SVPI is a sidecar format that stores the SVP-compatible package core (semantic observations, provenance, indexes, validation metadata) without embedding primary media bytes. An SVPI file binds to its source media through media identity fields rather than containing the media itself.
+
+The app declares both types in its `Info.plist`. The MediaExtension declares only the SVP type.
 
 ## SVP Package Expectations
 
@@ -39,11 +52,14 @@ manifest.json
 media/original/<primary media file>
 ```
 
-The `mimetype` entry must contain:
+The `mimetype` entry must contain one of:
 
 ```text
 application/vnd.svp+zip
+application/vnd.svp.interlace+zip
 ```
+
+The first is for SVP packages with embedded media. The second is for SVPI sidecar packages without embedded media.
 
 `SVPReader` currently reads these manifest fields when present:
 
@@ -90,7 +106,7 @@ flowchart TD
 `SVPReader` is the shared source of truth for reading SVP packages. It:
 
 - Opens the SVP file as a ZIP archive.
-- Validates the `mimetype` entry.
+- Validates the `mimetype` entry (accepts both SVP and SVPI mimetypes).
 - Requires `manifest.json` to exist.
 - Reads manifest metadata.
 - Locates primary media in `media/original/`.
@@ -106,10 +122,12 @@ The host app lives in `SVPSystemSupport/`. It is an agent-style AppKit app with 
 
 It provides:
 
-- File type registration for `.svp`.
-- Finder service: `Extract Video from SVP`.
+- File type registration for `.svp` and `.svpi`.
+- Finder service: `Extract Video from SVP` (SVP only — SVPI has no embedded media).
 - Finder service: `Show SVP Transcript`.
 - Finder service: `SVP Inspector`.
+- Finder service: `Show SVPI Transcript`.
+- Finder service: `SVPI Inspector`.
 - Open-file handling for `.svp` files.
 
 When extracting video, the app asks the user where to save the embedded media file, writes it there, and reveals the result in Finder.
@@ -311,9 +329,11 @@ zip -r /tmp/test.svp mimetype manifest.json media
 
 ## Finder Services
 
-After installation, Finder can send `.svp` files to the app through macOS Services.
+After installation, Finder can send `.svp` and `.svpi` files to the app through macOS Services.
 
 ### Extract Video from SVP
+
+> **SVP only.** This service is not available for `.svpi` files because SVPI does not contain embedded source media.
 
 This service:
 
@@ -341,6 +361,24 @@ This service:
 2. Validates the package.
 3. Loads all package contents through `SVPReader`.
 4. Opens an inspector window with a SwiftUI sidebar and detail pane for browsing metadata, transcript data, OCR/text, evidence crops, colors, scenes, entities, provenance, and index summary.
+
+### Show SVPI Transcript
+
+This service works identically to Show SVP Transcript but operates on `.svpi` files:
+
+1. Reads the selected `.svpi` file.
+2. Validates the package.
+3. Reads `transcript/words.jsonl`.
+4. Displays joined transcript text in a scrollable window with a Done button.
+
+### SVPI Inspector
+
+This service works identically to SVP Inspector but operates on `.svpi` files:
+
+1. Reads the selected `.svpi` file.
+2. Validates the package.
+3. Loads all package contents through `SVPReader`.
+4. Opens an inspector window titled with the **SVPI Inspector** label.
 
 Both the Inspector and Transcript windows open as regular non-modal windows, so you can have both open at the same time from the Finder right-click menu.
 
@@ -389,7 +427,7 @@ Check that the package:
 
 - Is a valid ZIP archive.
 - Contains a `mimetype` entry.
-- Has `application/vnd.svp+zip` as the mimetype content.
+- Has `application/vnd.svp+zip` or `application/vnd.svp.interlace+zip` as the mimetype content.
 - Contains `manifest.json`.
 - Contains at least one file under `media/original/`.
 
