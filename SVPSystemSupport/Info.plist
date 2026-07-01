@@ -72,6 +72,50 @@
 				<string>com.semanticvideo.svp</string>
 			</array>
 		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Show SVPI Transcript</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>showTranscriptServiceSVPI</string>
+			<key>NSPortName</key>
+			<string>SVPSystemSupport</string>
+			<key>NSRequiredContext</key>
+			<dict>
+				<key>NSApplicationIdentifier</key>
+				<string>com.apple.finder</string>
+			</dict>
+			<key>NSRestricted</key>
+			<false/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>com.semanticvideo.svpi</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>SVPI Inspector</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>inspectSVPIService</string>
+			<key>NSPortName</key>
+			<string>SVPSystemSupport</string>
+			<key>NSRequiredContext</key>
+			<dict>
+				<key>NSApplicationIdentifier</key>
+				<string>com.apple.finder</string>
+			</dict>
+			<key>NSRestricted</key>
+			<false/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>com.semanticvideo.svpi</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
@@ -85,6 +129,18 @@
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>com.semanticvideo.svp</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Semantic Video Package Interlace</string>
+			<key>CFBundleTypeRole</key>
+			<string>None</string>
+			<key>LSHandlerRank</key>
+			<string>None</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.semanticvideo.svpi</string>
 			</array>
 		</dict>
 	</array>
@@ -110,6 +166,27 @@
 				<key>public.mime-type</key>
 				<array>
 					<string>application/vnd.svp+zip</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeDescription</key>
+			<string>Semantic Video Package Interlace</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.semanticvideo.svpi</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.zip-archive</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>svpi</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.svp.interlace+zip</string>
 				</array>
 			</dict>
 		</dict>

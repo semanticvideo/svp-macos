@@ -88,19 +88,27 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
     }
 
     private func showInspector(for svpURL: URL) {
-        SVPAppLogger.log("App opening inspector for: \(svpURL.path)")
-        let data = SVPInspectorData.load(from: svpURL)
+        showInspector(for: svpURL, formatLabel: "SVP")
+    }
+
+    private func showInspectorSVPI(for svpiURL: URL) {
+        showInspector(for: svpiURL, formatLabel: "SVPI")
+    }
+
+    private func showInspector(for url: URL, formatLabel: String) {
+        SVPAppLogger.log("App opening inspector for: \(url.path)")
+        let data = SVPInspectorData.load(from: url)
 
         if let error = data.loadError {
             SVPAppLogger.log("App inspector load failed: \(error)")
             let alert = NSAlert()
-            alert.messageText = "Failed to open SVP Inspector"
+            alert.messageText = "Failed to open \(formatLabel) Inspector"
             alert.informativeText = error
             alert.runModal()
             return
         }
 
-        let title = "\(svpURL.deletingPathExtension().lastPathComponent) — SVP Inspector"
+        let title = "\(url.deletingPathExtension().lastPathComponent) — \(formatLabel) Inspector"
         let windowController = SVPInspectorWindowController(data: data, windowTitle: title)
         windowController.onClose = { [weak self, weak windowController] in
             guard let windowController else { return }
@@ -108,5 +116,33 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
         }
         inspectorWindowControllers.append(windowController)
         windowController.present()
+    }
+
+    @objc(showTranscriptServiceSVPI:userData:error:)
+    func showTranscriptServiceSVPI(_ pasteboard: NSPasteboard, userData: NSString?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        SVPAppLogger.log("App received SVPI transcript service request")
+
+        guard let svpiURL = SVPPasteboardReader.svpiURL(from: pasteboard) else {
+            SVPAppLogger.log("App SVPI transcript service request contained no SVPI file URL")
+            error.pointee = "No SVPI file was provided."
+            return
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
+        showTranscript(from: svpiURL)
+    }
+
+    @objc(inspectSVPIService:userData:error:)
+    func inspectSVPIService(_ pasteboard: NSPasteboard, userData: NSString?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        SVPAppLogger.log("App received SVPI inspector service request")
+
+        guard let svpiURL = SVPPasteboardReader.svpiURL(from: pasteboard) else {
+            SVPAppLogger.log("App SVPI inspector service request contained no SVPI file URL")
+            error.pointee = "No SVPI file was provided."
+            return
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
+        showInspectorSVPI(for: svpiURL)
     }
 }

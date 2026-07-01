@@ -10,4 +10,14 @@ enum SVPPasteboardReader {
         let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL]
         return urls?.first { $0.pathExtension.lowercased() == "svp" }
     }
+
+    static func svpiURL(from pasteboard: NSPasteboard) -> URL? {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [
+            .urlReadingFileURLsOnly: true,
+            .urlReadingContentsConformToTypes: ["com.semanticvideo.svpi"]
+        ]
+
+        let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL]
+        return urls?.first { $0.pathExtension.lowercased() == "svpi" }
+    }
 }

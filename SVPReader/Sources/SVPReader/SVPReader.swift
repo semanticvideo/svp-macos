@@ -40,7 +40,11 @@ public final class SVPReader: @unchecked Sendable {
             throw SVPError.notSVPFile("Cannot read mimetype")
         }
 
-        guard mime == "application/vnd.svp+zip" else {
+        let validMimetypes: Set<String> = [
+            "application/vnd.svp+zip",
+            "application/vnd.svp.interlace+zip"
+        ]
+        guard validMimetypes.contains(mime) else {
             throw SVPError.notSVPFile("Unexpected mimetype: \(mime)")
         }
 
