@@ -13,17 +13,33 @@ final class SVPSupportWindowCoordinator {
     }
 
     func showTranscript(from svpURL: URL) {
-        do {
-            let transcript = try transcriptLoader.loadTranscript(from: svpURL)
-            let videoTitle = svpURL.deletingPathExtension().lastPathComponent
-            prepareForSupportWindowPresentation(reason: "transcript")
-            transcriptPresenter.present(title: "\(videoTitle) Transcript", text: transcript)
-        } catch {
-            SVPAppLogger.log("App transcript failed: \(error)")
-            let alert = NSAlert()
-            alert.messageText = "Failed to show transcript"
-            alert.informativeText = String(describing: error)
-            alert.runModal()
+        let videoTitle = svpURL.deletingPathExtension().lastPathComponent
+        prepareForSupportWindowPresentation(reason: "transcript")
+        let window = transcriptPresenter.presentLoading(title: "\(videoTitle) Transcript")
+
+        DispatchQueue.global(qos: .userInitiated).async { [transcriptLoader, weak self, weak window] in
+            let result: Result<String, Error>
+            do {
+                result = .success(try transcriptLoader.loadTranscript(from: svpURL))
+            } catch {
+                result = .failure(error)
+            }
+
+            DispatchQueue.main.async {
+                guard let self, let window, self.transcriptPresenter.contains(window) else { return }
+
+                switch result {
+                case .success(let transcript):
+                    self.transcriptPresenter.completeLoading(window: window, text: transcript)
+                case .failure(let error):
+                    SVPAppLogger.log("App transcript failed: \(error)")
+                    self.transcriptPresenter.close(window: window)
+                    let alert = NSAlert()
+                    alert.messageText = "Failed to show transcript"
+                    alert.informativeText = String(describing: error)
+                    alert.runModal()
+                }
+            }
         }
     }
 
@@ -37,19 +53,9 @@ final class SVPSupportWindowCoordinator {
 
     private func showInspector(for url: URL, formatLabel: String) {
         SVPAppLogger.log("App opening inspector for: \(url.path)")
-        let data = SVPInspectorData.load(from: url)
 
-        if let error = data.loadError {
-            SVPAppLogger.log("App inspector load failed: \(error)")
-            let alert = NSAlert()
-            alert.messageText = "Failed to open \(formatLabel) Inspector"
-            alert.informativeText = error
-            alert.runModal()
-            return
-        }
-
-        let title = "\(url.deletingPathExtension().lastPathComponent) — \(formatLabel) Inspector"
-        let windowController = SVPInspectorWindowController(data: data, windowTitle: title)
+        let viewModel = SVPInspectorViewModel(fileURL: url, formatLabel: formatLabel)
+        let windowController = SVPInspectorWindowController(viewModel: viewModel)
         windowController.onClose = { [weak self, weak windowController] in
             guard let windowController else { return }
             self?.inspectorWindowControllers.removeAll { $0 === windowController }

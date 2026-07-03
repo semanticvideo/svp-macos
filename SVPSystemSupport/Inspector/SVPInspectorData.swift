@@ -1,221 +1,256 @@
 import Foundation
 import SVPReader
 
-struct SVPInspectorData {
+enum SVPInspectorLoadState<Value> {
+    case idle
+    case loading
+    case loaded(Value)
+    case failed(String)
+}
+
+struct SVPInspectorOverviewData {
     let fileURL: URL
     let manifest: SVPManifestInfo?
     let mediaInfo: SVPMediaInfo?
     let mediaEntryCount: Int
     let allEntries: [String]
+    let entryCounts: [SVPInspectorSection: Int]
+}
 
-    let transcriptWords: [[String: Any]]
-    let transcriptSummary: [String: Any]?
-    let speakers: [[String: Any]]
-    let speakerSegments: [[String: Any]]
+struct SVPInspectorTranscriptData {
+    let words: SVPInspectorJSONLStore
+    let summary: [String: Any]?
+    let speakers: SVPInspectorJSONLStore
+    let speakerSegments: SVPInspectorJSONLStore
+}
 
-    let textRegions: [[String: Any]]
-    let textObservations: [[String: Any]]
-    let numericValues: [[String: Any]]
-    let textAbsence: [String: Any]?
-    let evidenceCrops: [[String: Any]]
-    let evidenceCropImages: [String: Data]
+struct SVPInspectorTextData {
+    let regions: SVPInspectorJSONLStore
+    let observations: SVPInspectorJSONLStore
+    let numericValues: SVPInspectorJSONLStore
+    let absence: [String: Any]?
+}
 
-    let colorObservations: [[String: Any]]
-    let colorSummary: [String: Any]?
-    let colorAbsence: [String: Any]?
+struct SVPInspectorEvidenceCropsData {
+    let fileURL: URL
+    let crops: [[String: Any]]
+}
 
-    let shots: [[String: Any]]
-    let scenes: [[String: Any]]
-    let frames: [[String: Any]]
+struct SVPInspectorColorsData {
+    let observations: SVPInspectorJSONLStore
+    let summary: [String: Any]?
+    let absence: [String: Any]?
+}
 
-    let entities: [[String: Any]]
-    let entityTracks: [[String: Any]]
+struct SVPInspectorTimelineData {
+    let shots: SVPInspectorJSONLStore
+    let scenes: SVPInspectorJSONLStore
+    let frames: SVPInspectorJSONLStore
+}
 
-    let relationships: [[String: Any]]
+struct SVPInspectorEntitiesData {
+    let entities: SVPInspectorJSONLStore
+    let entityTracks: SVPInspectorJSONLStore
+}
 
-    let provenanceBuild: [String: Any]?
-    let provenanceProcessors: [[String: Any]]
+struct SVPInspectorRelationshipsData {
+    let store: SVPInspectorJSONLStore
+}
+
+struct SVPInspectorProvenanceData {
+    let build: [String: Any]?
+    let processors: SVPInspectorJSONLStore
     let validationReport: [String: Any]?
+}
 
-    let indexManifest: [String: Any]?
+struct SVPInspectorIndexData {
+    let allEntries: [String]
+    let manifest: [String: Any]?
     let hasIndex: Bool
+}
 
-    let loadError: String?
+enum SVPInspectorDataLoader {
+    nonisolated static func loadOverview(from url: URL) throws -> SVPInspectorOverviewData {
+        try timed("overview") {
+            let reader = try validatedReader(for: url)
+            let allEntries = reader.allEntryNames
+            let manifest = try? reader.readManifest()
+            let mediaInfo = try? reader.locatePrimaryMediaAsset()
+            let mediaEntryCount = allEntries.filter { $0.hasPrefix("media/original/") && !$0.hasSuffix("/") }.count
 
-    static func load(from url: URL) -> SVPInspectorData {
-        SVPAppLogger.log("Inspector loading data from: \(url.path)")
-
-        var manifest: SVPManifestInfo?
-        var mediaInfo: SVPMediaInfo?
-        var mediaEntryCount = 0
-        var allEntries: [String] = []
-        var loadError: String?
-
-        var transcriptWords: [[String: Any]] = []
-        var transcriptSummary: [String: Any]?
-        var speakers: [[String: Any]] = []
-        var speakerSegments: [[String: Any]] = []
-
-        var textRegions: [[String: Any]] = []
-        var textObservations: [[String: Any]] = []
-        var numericValues: [[String: Any]] = []
-        var textAbsence: [String: Any]?
-        var evidenceCrops: [[String: Any]] = []
-        var evidenceCropImages: [String: Data] = [:]
-
-        var colorObservations: [[String: Any]] = []
-        var colorSummary: [String: Any]?
-        var colorAbsence: [String: Any]?
-
-        var shots: [[String: Any]] = []
-        var scenes: [[String: Any]] = []
-        var frames: [[String: Any]] = []
-
-        var entities: [[String: Any]] = []
-        var entityTracks: [[String: Any]] = []
-
-        var relationships: [[String: Any]] = []
-
-        var provenanceBuild: [String: Any]?
-        var provenanceProcessors: [[String: Any]] = []
-        var validationReport: [String: Any]?
-
-        var indexManifest: [String: Any]?
-        var hasIndex = false
-
-        do {
-            let reader = try SVPReader(url: url)
-            try reader.validateSVP()
-
-            allEntries = reader.allEntryNames
-            SVPAppLogger.log("Inspector found \(allEntries.count) entries in package")
-
-            manifest = try? reader.readManifest()
-
-            if let mi = try? reader.locatePrimaryMediaAsset() {
-                mediaInfo = mi
-            }
-            mediaEntryCount = allEntries.filter { $0.hasPrefix("media/original/") && !$0.hasSuffix("/") }.count
-
-            if reader.hasEntry("transcript/words.jsonl") {
-                transcriptWords = (try? reader.readJSONLEntry("transcript/words.jsonl")) ?? []
-            }
-            if reader.hasEntry("transcript/transcript.json") {
-                transcriptSummary = try? reader.readJSONEntry("transcript/transcript.json")
-            }
-            if reader.hasEntry("transcript/speakers.jsonl") {
-                speakers = (try? reader.readJSONLEntry("transcript/speakers.jsonl")) ?? []
-            }
-            if reader.hasEntry("transcript/speaker_segments.jsonl") {
-                speakerSegments = (try? reader.readJSONLEntry("transcript/speaker_segments.jsonl")) ?? []
-            }
-
-            if reader.hasEntry("text/text_regions.jsonl") {
-                textRegions = (try? reader.readJSONLEntry("text/text_regions.jsonl")) ?? []
-            }
-            if reader.hasEntry("text/text_observations.jsonl") {
-                textObservations = (try? reader.readJSONLEntry("text/text_observations.jsonl")) ?? []
-            }
-            if reader.hasEntry("text/numeric_values.jsonl") {
-                numericValues = (try? reader.readJSONLEntry("text/numeric_values.jsonl")) ?? []
-            }
-            if reader.hasEntry("text/text_absence.json") {
-                textAbsence = try? reader.readJSONEntry("text/text_absence.json")
-            }
-            if reader.hasEntry("text/evidence_crops.jsonl") {
-                evidenceCrops = (try? reader.readJSONLEntry("text/evidence_crops.jsonl")) ?? []
-                for crop in evidenceCrops {
-                    if let cropFilePath = crop["crop_file_path"] as? String,
-                       !cropFilePath.isEmpty,
-                       reader.hasEntry(cropFilePath),
-                       evidenceCropImages[cropFilePath] == nil {
-                        evidenceCropImages[cropFilePath] = try? reader.readEntryData(cropFilePath)
-                    }
-                }
-            }
-
-            if reader.hasEntry("colors/color_observations.jsonl") {
-                colorObservations = (try? reader.readJSONLEntry("colors/color_observations.jsonl")) ?? []
-            }
-            if reader.hasEntry("colors/color_summary.json") {
-                colorSummary = try? reader.readJSONEntry("colors/color_summary.json")
-            }
-            if reader.hasEntry("colors/color_absence.json") {
-                colorAbsence = try? reader.readJSONEntry("colors/color_absence.json")
-            }
-
-            if reader.hasEntry("timeline/shots.jsonl") {
-                shots = (try? reader.readJSONLEntry("timeline/shots.jsonl")) ?? []
-            }
-            if reader.hasEntry("timeline/scenes.jsonl") {
-                scenes = (try? reader.readJSONLEntry("timeline/scenes.jsonl")) ?? []
-            }
-            if reader.hasEntry("timeline/frames.jsonl") {
-                frames = (try? reader.readJSONLEntry("timeline/frames.jsonl")) ?? []
-            }
-
-            if reader.hasEntry("entities/entities.jsonl") {
-                entities = (try? reader.readJSONLEntry("entities/entities.jsonl")) ?? []
-            }
-            if reader.hasEntry("entities/entity_tracks.jsonl") {
-                entityTracks = (try? reader.readJSONLEntry("entities/entity_tracks.jsonl")) ?? []
-            }
-
-            if reader.hasEntry("relationships/relationships.jsonl") {
-                relationships = (try? reader.readJSONLEntry("relationships/relationships.jsonl")) ?? []
-            }
-
-            if reader.hasEntry("provenance/build.json") {
-                provenanceBuild = try? reader.readJSONEntry("provenance/build.json")
-            }
-            if reader.hasEntry("provenance/processors.jsonl") {
-                provenanceProcessors = (try? reader.readJSONLEntry("provenance/processors.jsonl")) ?? []
-            }
-            if reader.hasEntry("provenance/validation.json") {
-                validationReport = try? reader.readJSONEntry("provenance/validation.json")
-            }
-
-            hasIndex = reader.hasEntry("index/index.sqlite")
-            if reader.hasEntry("index/index_manifest.json") {
-                indexManifest = try? reader.readJSONEntry("index/index_manifest.json")
-            }
-
-        } catch {
-            SVPAppLogger.log("Inspector load error: \(error)")
-            loadError = String(describing: error)
+            return SVPInspectorOverviewData(
+                fileURL: url,
+                manifest: manifest,
+                mediaInfo: mediaInfo,
+                mediaEntryCount: mediaEntryCount,
+                allEntries: allEntries,
+                entryCounts: entryCounts(from: allEntries)
+            )
         }
+    }
 
-        return SVPInspectorData(
-            fileURL: url,
-            manifest: manifest,
-            mediaInfo: mediaInfo,
-            mediaEntryCount: mediaEntryCount,
-            allEntries: allEntries,
-            transcriptWords: transcriptWords,
-            transcriptSummary: transcriptSummary,
-            speakers: speakers,
-            speakerSegments: speakerSegments,
-            textRegions: textRegions,
-            textObservations: textObservations,
-            numericValues: numericValues,
-            textAbsence: textAbsence,
-            evidenceCrops: evidenceCrops,
-            evidenceCropImages: evidenceCropImages,
-            colorObservations: colorObservations,
-            colorSummary: colorSummary,
-            colorAbsence: colorAbsence,
-            shots: shots,
-            scenes: scenes,
-            frames: frames,
-            entities: entities,
-            entityTracks: entityTracks,
-            relationships: relationships,
-            provenanceBuild: provenanceBuild,
-            provenanceProcessors: provenanceProcessors,
-            validationReport: validationReport,
-            indexManifest: indexManifest,
-            hasIndex: hasIndex,
-            loadError: loadError
-        )
+    nonisolated static func loadTranscript(from url: URL) throws -> SVPInspectorTranscriptData {
+        try timed("transcript section") {
+            let reader = try validatedReader(for: url)
+            return SVPInspectorTranscriptData(
+                words: try readJSONLStore("transcript/words.jsonl", from: reader),
+                summary: readJSON("transcript/transcript.json", from: reader),
+                speakers: try readJSONLStore("transcript/speakers.jsonl", from: reader),
+                speakerSegments: try readJSONLStore("transcript/speaker_segments.jsonl", from: reader)
+            )
+        }
+    }
+
+    nonisolated static func loadText(from url: URL) throws -> SVPInspectorTextData {
+        try timed("text section") {
+            let reader = try validatedReader(for: url)
+            return SVPInspectorTextData(
+                regions: try readJSONLStore("text/text_regions.jsonl", from: reader),
+                observations: try readJSONLStore("text/text_observations.jsonl", from: reader),
+                numericValues: try readJSONLStore("text/numeric_values.jsonl", from: reader),
+                absence: readJSON("text/text_absence.json", from: reader)
+            )
+        }
+    }
+
+    nonisolated static func loadEvidenceCrops(from url: URL) throws -> SVPInspectorEvidenceCropsData {
+        try timed("evidence crops section") {
+            let reader = try validatedReader(for: url)
+            return SVPInspectorEvidenceCropsData(
+                fileURL: url,
+                crops: readJSONL("text/evidence_crops.jsonl", from: reader)
+            )
+        }
+    }
+
+    nonisolated static func loadEvidenceCropImage(packageURL: URL, cropFilePath: String) throws -> Data? {
+        try timed("evidence crop image \(cropFilePath)") {
+            let reader = try validatedReader(for: packageURL)
+            guard reader.hasEntry(cropFilePath) else { return nil }
+            return try reader.readEntryData(cropFilePath)
+        }
+    }
+
+    nonisolated static func loadColors(from url: URL) throws -> SVPInspectorColorsData {
+        try timed("colors section") {
+            let reader = try validatedReader(for: url)
+            return SVPInspectorColorsData(
+                observations: try readJSONLStore("colors/color_observations.jsonl", from: reader),
+                summary: readJSON("colors/color_summary.json", from: reader),
+                absence: readJSON("colors/color_absence.json", from: reader)
+            )
+        }
+    }
+
+    nonisolated static func loadTimeline(from url: URL) throws -> SVPInspectorTimelineData {
+        try timed("timeline section") {
+            let reader = try validatedReader(for: url)
+            return SVPInspectorTimelineData(
+                shots: try readJSONLStore("timeline/shots.jsonl", from: reader),
+                scenes: try readJSONLStore("timeline/scenes.jsonl", from: reader),
+                frames: try readJSONLStore("timeline/frames.jsonl", from: reader)
+            )
+        }
+    }
+
+    nonisolated static func loadEntities(from url: URL) throws -> SVPInspectorEntitiesData {
+        try timed("entities section") {
+            let reader = try validatedReader(for: url)
+            return SVPInspectorEntitiesData(
+                entities: try readJSONLStore("entities/entities.jsonl", from: reader),
+                entityTracks: try readJSONLStore("entities/entity_tracks.jsonl", from: reader)
+            )
+        }
+    }
+
+    nonisolated static func loadRelationships(from url: URL) throws -> SVPInspectorRelationshipsData {
+        try timed("relationships section") {
+            let reader = try validatedReader(for: url)
+            return SVPInspectorRelationshipsData(
+                store: try readJSONLStore("relationships/relationships.jsonl", from: reader)
+            )
+        }
+    }
+
+    nonisolated static func loadProvenance(from url: URL) throws -> SVPInspectorProvenanceData {
+        try timed("provenance section") {
+            let reader = try validatedReader(for: url)
+            return SVPInspectorProvenanceData(
+                build: readJSON("provenance/build.json", from: reader),
+                processors: try readJSONLStore("provenance/processors.jsonl", from: reader),
+                validationReport: readJSON("provenance/validation.json", from: reader)
+            )
+        }
+    }
+
+    nonisolated static func loadIndex(from url: URL) throws -> SVPInspectorIndexData {
+        try timed("index section") {
+            let reader = try validatedReader(for: url)
+            return SVPInspectorIndexData(
+                allEntries: reader.allEntryNames,
+                manifest: readJSON("index/index_manifest.json", from: reader),
+                hasIndex: reader.hasEntry("index/index.sqlite")
+            )
+        }
+    }
+
+    private nonisolated static func validatedReader(for url: URL) throws -> SVPReader {
+        let reader = try SVPReader(url: url)
+        try reader.validateSVP()
+        return reader
+    }
+
+    private nonisolated static func readJSONL(_ entryName: String, from reader: SVPReader) -> [[String: Any]] {
+        guard reader.hasEntry(entryName) else { return [] }
+        return (try? reader.readJSONLEntry(entryName)) ?? []
+    }
+
+    private nonisolated static func readJSONLStore(_ entryName: String, from reader: SVPReader) throws -> SVPInspectorJSONLStore {
+        try SVPInspectorJSONLStore(reader: reader, entryName: entryName)
+    }
+
+    private nonisolated static func readJSON(_ entryName: String, from reader: SVPReader) -> [String: Any]? {
+        guard reader.hasEntry(entryName) else { return nil }
+        return try? reader.readJSONEntry(entryName)
+    }
+
+    private nonisolated static func entryCounts(from allEntries: [String]) -> [SVPInspectorSection: Int] {
+        [
+            .transcript: countEntries(allEntries, prefixes: ["transcript/"], suffixes: [".jsonl", ".json"]),
+            .ocr: countEntries(allEntries, prefixes: ["text/"], suffixes: [".jsonl", ".json"]),
+            .evidenceCrops: countEntries(allEntries, prefixes: ["text/evidence_crops/"], suffixes: [".jpg", ".jpeg", ".png"]),
+            .colors: countEntries(allEntries, prefixes: ["colors/"], suffixes: [".jsonl", ".json"]),
+            .scenes: countEntries(allEntries, prefixes: ["timeline/"], suffixes: [".jsonl", ".json"]),
+            .entities: countEntries(allEntries, prefixes: ["entities/"], suffixes: [".jsonl", ".json"]),
+            .relationships: countEntries(allEntries, prefixes: ["relationships/"], suffixes: [".jsonl", ".json"]),
+            .provenance: countEntries(allEntries, prefixes: ["provenance/"], suffixes: [".jsonl", ".json"]),
+            .index: countEntries(allEntries, prefixes: ["index/"], suffixes: [".sqlite", ".json"])
+        ]
+    }
+
+    private nonisolated static func countEntries(
+        _ entries: [String],
+        prefixes: [String],
+        suffixes: [String]
+    ) -> Int {
+        entries.filter { entry in
+            prefixes.contains { entry.hasPrefix($0) }
+                && suffixes.contains { entry.lowercased().hasSuffix($0) }
+        }.count
+    }
+
+    private nonisolated static func timed<Value>(_ label: String, _ work: () throws -> Value) throws -> Value {
+        let start = Date()
+        SVPAppLogger.log("Inspector loading \(label) started")
+        do {
+            let value = try work()
+            let elapsed = Date().timeIntervalSince(start)
+            SVPAppLogger.log(String(format: "Inspector loading %@ finished in %.3fs", label, elapsed))
+            return value
+        } catch {
+            let elapsed = Date().timeIntervalSince(start)
+            SVPAppLogger.log(String(format: "Inspector loading %@ failed in %.3fs: %@", label, elapsed, String(describing: error)))
+            throw error
+        }
     }
 }

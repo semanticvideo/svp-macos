@@ -127,8 +127,105 @@ final class SVPSystemSupportTests: XCTestCase {
         XCTAssertFalse(infoPlist.contains("QLIsDataBasedPreview"))
     }
 
+    func testRelationshipStoreReadsRowsByOffset() throws {
+        let fixtureURL = repositoryRoot.appendingPathComponent("SVPSystemSupportTests/Resources/SVP-TEST.svp")
+        let store = try SVPInspectorJSONLStore(
+            packageURL: fixtureURL,
+            entryName: "relationships/relationships.jsonl"
+        )
+
+        XCTAssertEqual(store.rowCount, 47)
+        XCTAssertEqual(store.uncompressedSize, 12_875)
+
+        let firstRow = try XCTUnwrap(store.row(at: 0))
+        XCTAssertEqual(firstRow["source_id"] as? String, "embed_text_obs_000001")
+        XCTAssertEqual(firstRow["type"] as? String, "embedding_source_is")
+        XCTAssertEqual(firstRow["target_id"] as? String, "text_region_000001")
+        XCTAssertEqual(store.microsecondsText(at: 0, key: "start_us"), "0.000")
+        XCTAssertEqual(store.microsecondsText(at: 0, key: "end_us"), "0.000")
+        XCTAssertEqual(store.text(at: 0, key: "confidence"), "1")
+
+        let lastRow = try XCTUnwrap(store.row(at: store.rowCount - 1))
+        XCTAssertEqual(lastRow["source_id"] as? String, "word_000005")
+        XCTAssertEqual(lastRow["type"] as? String, "word_spoken_by")
+        XCTAssertEqual(lastRow["target_id"] as? String, "speaker_0002")
+        XCTAssertEqual(store.microsecondsText(at: store.rowCount - 1, key: "start_us"), "3.725")
+        XCTAssertEqual(store.microsecondsText(at: store.rowCount - 1, key: "end_us"), "4.450")
+        XCTAssertEqual(store.text(at: store.rowCount - 1, key: "confidence"), "0")
+
+        XCTAssertNil(store.row(at: store.rowCount))
+    }
+
+    func testRelationshipStoreHandlesMissingRelationshipsEntry() throws {
+        let fixtureURL = try makeMinimalSVPPackage()
+        defer { try? FileManager.default.removeItem(at: fixtureURL) }
+
+        let beforeTempDirs = inspectorJSONLTempDirectories()
+
+        do {
+            let store = try SVPInspectorJSONLStore(
+                packageURL: fixtureURL,
+                entryName: "relationships/relationships.jsonl"
+            )
+            XCTAssertEqual(store.rowCount, 0)
+            XCTAssertNil(store.uncompressedSize)
+            XCTAssertNil(store.row(at: 0))
+        }
+
+        XCTAssertEqual(inspectorJSONLTempDirectories(), beforeTempDirs)
+    }
+
     private func readSource(_ relativePath: String) throws -> String {
         let url = repositoryRoot.appendingPathComponent(relativePath)
         return try String(contentsOf: url, encoding: .utf8)
+    }
+
+    private func makeMinimalSVPPackage() throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("svp-minimal-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        try "application/vnd.svp+zip\n".write(
+            to: root.appendingPathComponent("mimetype"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try """
+        {
+          "svp_version": "1.0",
+          "package_id": "missing_relationships_fixture",
+          "created_utc": "2026-07-03T00:00:00Z",
+          "primary_media_id": "media_000001",
+          "timebase": {
+            "unit": "microseconds",
+            "origin": "media"
+          }
+        }
+        """.write(
+            to: root.appendingPathComponent("manifest.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let packageURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("svp-minimal-\(UUID().uuidString).svp")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+        process.currentDirectoryURL = root
+        process.arguments = ["-q", "-X", packageURL.path, "mimetype", "manifest.json"]
+        try process.run()
+        process.waitUntilExit()
+        XCTAssertEqual(process.terminationStatus, 0)
+
+        return packageURL
+    }
+
+    private func inspectorJSONLTempDirectories() -> Set<String> {
+        let tempURL = FileManager.default.temporaryDirectory
+        let names = (try? FileManager.default.contentsOfDirectory(
+            atPath: tempURL.path
+        )) ?? []
+        return Set(names.filter { $0.hasPrefix("svp-inspector-jsonl-") })
     }
 }

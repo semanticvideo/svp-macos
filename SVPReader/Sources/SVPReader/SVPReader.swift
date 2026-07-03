@@ -26,7 +26,6 @@ public final class SVPReader: @unchecked Sendable {
 
     public init(url: URL) throws {
         self.url = url
-        SVPLog.debug("Opening SVP: \(url.path)")
         self.zipReader = try ZipReader(url: url)
     }
 
@@ -52,7 +51,6 @@ public final class SVPReader: @unchecked Sendable {
             throw SVPError.manifestReadFailed("No manifest.json found")
         }
 
-        SVPLog.debug("SVP validated: mimetype OK, manifest present")
     }
 
     public func readManifest() throws -> SVPManifestInfo {
@@ -237,6 +235,14 @@ public final class SVPReader: @unchecked Sendable {
 
     public func readEntryData(_ name: String) throws -> Data {
         try zipReader.readEntry(name)
+    }
+
+    @_spi(Inspector) public func extractEntry(_ name: String, to destinationURL: URL) throws {
+        try zipReader.extractEntry(name, to: destinationURL)
+    }
+
+    @_spi(Inspector) public func entryUncompressedSize(_ name: String) -> UInt64? {
+        zipReader.entryInfo(name)?.uncompressedSize
     }
 
     public func readJSONEntry(_ name: String) throws -> [String: Any] {
