@@ -237,11 +237,11 @@ public final class SVPReader: @unchecked Sendable {
         try zipReader.readEntry(name)
     }
 
-    public func extractEntry(_ name: String, to destinationURL: URL) throws {
+    @_spi(Inspector) public func extractEntry(_ name: String, to destinationURL: URL) throws {
         try zipReader.extractEntry(name, to: destinationURL)
     }
 
-    public func entryUncompressedSize(_ name: String) -> UInt64? {
+    @_spi(Inspector) public func entryUncompressedSize(_ name: String) -> UInt64? {
         zipReader.entryInfo(name)?.uncompressedSize
     }
 

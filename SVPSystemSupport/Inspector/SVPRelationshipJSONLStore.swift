@@ -1,5 +1,5 @@
 import Foundation
-import SVPReader
+@_spi(Inspector) import SVPReader
 
 nonisolated struct SVPRelationshipRow {
     let sourceID: String
@@ -23,6 +23,7 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
     private let lineOffsets: [UInt64]
     private let fileSize: UInt64
     private let readLock = NSLock()
+    private let cacheLock = NSLock()
     private var rowCache: [Int: SVPRelationshipRow] = [:]
     private var cacheOrder: [Int] = []
 
@@ -30,25 +31,40 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
         let reader = try SVPReader(url: packageURL)
         try reader.validateSVP()
 
-        self.uncompressedSize = reader.entryUncompressedSize(Self.entryName)
-        self.tempDirectoryURL = FileManager.default.temporaryDirectory
+        let uncompressedSize = reader.entryUncompressedSize(Self.entryName)
+        let tempDirectoryURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("svp-relationships-\(UUID().uuidString)", isDirectory: true)
-        self.fileURL = tempDirectoryURL.appendingPathComponent("relationships.jsonl")
+        let fileURL = tempDirectoryURL.appendingPathComponent("relationships.jsonl")
 
         try FileManager.default.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
 
-        if reader.hasEntry(Self.entryName) {
-            try reader.extractEntry(Self.entryName, to: fileURL)
-            self.fileSize = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? UInt64) ?? 0
-            self.lineOffsets = try Self.indexLineOffsets(fileURL: fileURL, fileSize: fileSize)
-        } else {
-            FileManager.default.createFile(atPath: fileURL.path, contents: nil)
-            self.fileSize = 0
-            self.lineOffsets = []
-        }
+        do {
+            let fileSize: UInt64
+            let lineOffsets: [UInt64]
 
-        self.readHandle = try FileHandle(forReadingFrom: fileURL)
-        self.rowCount = lineOffsets.count
+            if reader.hasEntry(Self.entryName) {
+                try reader.extractEntry(Self.entryName, to: fileURL)
+                fileSize = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? UInt64) ?? 0
+                lineOffsets = try Self.indexLineOffsets(fileURL: fileURL, fileSize: fileSize)
+            } else {
+                guard FileManager.default.createFile(atPath: fileURL.path, contents: nil) else {
+                    throw SVPRelationshipJSONLStoreError.tempFileCreateFailed(fileURL.path)
+                }
+                fileSize = 0
+                lineOffsets = []
+            }
+
+            self.uncompressedSize = uncompressedSize
+            self.tempDirectoryURL = tempDirectoryURL
+            self.fileURL = fileURL
+            self.fileSize = fileSize
+            self.lineOffsets = lineOffsets
+            self.readHandle = try FileHandle(forReadingFrom: fileURL)
+            self.rowCount = lineOffsets.count
+        } catch {
+            try? FileManager.default.removeItem(at: tempDirectoryURL)
+            throw error
+        }
     }
 
     deinit {
@@ -58,7 +74,7 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
 
     func row(at index: Int) -> SVPRelationshipRow? {
         guard index >= 0, index < rowCount else { return nil }
-        if let cached = rowCache[index] { return cached }
+        if let cached = cachedRow(at: index) { return cached }
 
         guard let data = readLineData(at: index),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -99,6 +115,9 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
     }
 
     private func cache(_ row: SVPRelationshipRow, at index: Int) {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+
         guard rowCache[index] == nil else { return }
         rowCache[index] = row
         cacheOrder.append(index)
@@ -107,6 +126,12 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
             let removed = cacheOrder.removeFirst()
             rowCache[removed] = nil
         }
+    }
+
+    private func cachedRow(at index: Int) -> SVPRelationshipRow? {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        return rowCache[index]
     }
 
     private static func indexLineOffsets(fileURL: URL, fileSize: UInt64) throws -> [UInt64] {
@@ -148,4 +173,8 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
         guard let number = value as? NSNumber else { return "—" }
         return String(format: "%.3f", number.doubleValue / 1_000_000)
     }
+}
+
+nonisolated enum SVPRelationshipJSONLStoreError: Error {
+    case tempFileCreateFailed(String)
 }

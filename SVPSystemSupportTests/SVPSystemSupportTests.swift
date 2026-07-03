@@ -153,8 +153,73 @@ final class SVPSystemSupportTests: XCTestCase {
         XCTAssertNil(store.row(at: store.rowCount))
     }
 
+    func testRelationshipStoreHandlesMissingRelationshipsEntry() throws {
+        let fixtureURL = try makeMinimalSVPPackage()
+        defer { try? FileManager.default.removeItem(at: fixtureURL) }
+
+        let beforeTempDirs = relationshipTempDirectories()
+
+        do {
+            let store = try SVPRelationshipJSONLStore(packageURL: fixtureURL)
+            XCTAssertEqual(store.rowCount, 0)
+            XCTAssertNil(store.uncompressedSize)
+            XCTAssertNil(store.row(at: 0))
+        }
+
+        XCTAssertEqual(relationshipTempDirectories(), beforeTempDirs)
+    }
+
     private func readSource(_ relativePath: String) throws -> String {
         let url = repositoryRoot.appendingPathComponent(relativePath)
         return try String(contentsOf: url, encoding: .utf8)
+    }
+
+    private func makeMinimalSVPPackage() throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("svp-minimal-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        try "application/vnd.svp+zip\n".write(
+            to: root.appendingPathComponent("mimetype"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try """
+        {
+          "svp_version": "1.0",
+          "package_id": "missing_relationships_fixture",
+          "created_utc": "2026-07-03T00:00:00Z",
+          "primary_media_id": "media_000001",
+          "timebase": {
+            "unit": "microseconds",
+            "origin": "media"
+          }
+        }
+        """.write(
+            to: root.appendingPathComponent("manifest.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let packageURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("svp-minimal-\(UUID().uuidString).svp")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+        process.currentDirectoryURL = root
+        process.arguments = ["-q", "-X", packageURL.path, "mimetype", "manifest.json"]
+        try process.run()
+        process.waitUntilExit()
+        XCTAssertEqual(process.terminationStatus, 0)
+
+        return packageURL
+    }
+
+    private func relationshipTempDirectories() -> Set<String> {
+        let tempURL = FileManager.default.temporaryDirectory
+        let names = (try? FileManager.default.contentsOfDirectory(
+            atPath: tempURL.path
+        )) ?? []
+        return Set(names.filter { $0.hasPrefix("svp-relationships-") })
     }
 }
