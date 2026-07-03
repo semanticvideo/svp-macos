@@ -9,6 +9,7 @@ final class SVPInspectorWindowController: NSWindowController {
     private let toolbarProvider: SVPInspectorToolbarProvider
     private var quickLookDataSource: QLPreviewPanelDataSource?
     private var quickLookStartIndex: Int = 0
+    private var didTearDown = false
     var onClose: (() -> Void)?
 
     private enum Metrics {
@@ -19,7 +20,9 @@ final class SVPInspectorWindowController: NSWindowController {
     init(data: SVPInspectorData, windowTitle: String) {
         let splitViewController = SVPInspectorSplitViewController(data: data)
         let toolbarProvider = SVPInspectorToolbarProvider(
-            toggleSidebar: { splitViewController.toggleSidebar(nil) },
+            toggleSidebar: { [weak splitViewController] in
+                splitViewController?.toggleSidebar(nil)
+            },
             fileName: windowTitle
         )
 
@@ -52,6 +55,24 @@ final class SVPInspectorWindowController: NSWindowController {
 
     func present() {
         showWindow(nil)
+    }
+
+    private func tearDownForClose() {
+        guard !didTearDown else { return }
+        didTearDown = true
+
+        if let panel = QLPreviewPanel.shared(), panel.isVisible {
+            panel.close()
+        }
+        quickLookDataSource = nil
+
+        splitViewController.tearDownForClose()
+
+        window?.delegate = nil
+        window?.toolbar?.delegate = nil
+        window?.toolbar = nil
+        window?.contentViewController = nil
+        onClose = nil
     }
 
     // MARK: - Quick Look
@@ -91,6 +112,7 @@ extension SVPInspectorWindowController {
 extension SVPInspectorWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         onClose?()
+        tearDownForClose()
     }
 }
 
