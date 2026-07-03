@@ -1,10 +1,10 @@
 import Foundation
 
 enum SVPAppLogger {
-    static let appGroupID = "group.com.cueit.svp-system-support"
-    static let logFileName = "svp_extract.log"
+    nonisolated static let appGroupID = "group.com.cueit.svp-system-support"
+    nonisolated static let logFileName = "svp_extract.log"
 
-    static func log(_ message: String) {
+    nonisolated static func log(_ message: String) {
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else { return }
 
         let logURL = containerURL.appendingPathComponent(logFileName)

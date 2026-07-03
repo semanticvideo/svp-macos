@@ -4,9 +4,23 @@ import SVPReader
 // MARK: - Overview Detail View
 
 struct OverviewDetailView: View {
-    let data: SVPInspectorData
+    @ObservedObject var viewModel: SVPInspectorViewModel
 
     var body: some View {
+        switch viewModel.overviewState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading overview...")
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.overview)
+            }
+        case .loaded(let data):
+            overviewContent(data)
+        }
+    }
+
+    @ViewBuilder
+    private func overviewContent(_ data: SVPInspectorOverviewData) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 section("Package") {
@@ -30,29 +44,15 @@ struct OverviewDetailView: View {
 
                 section("Section Counts") {
                     infoRow("Total Entries", "\(data.allEntries.count)")
-                    infoRow("Transcript Words", "\(data.transcriptWords.count)")
-                    infoRow("Speakers", "\(data.speakers.count)")
-                    infoRow("Speaker Segments", "\(data.speakerSegments.count)")
-                    infoRow("Text Regions", "\(data.textRegions.count)")
-                    infoRow("Text Observations", "\(data.textObservations.count)")
-                    infoRow("Numeric Values", "\(data.numericValues.count)")
-                    infoRow("Evidence Crops", "\(data.evidenceCrops.count)")
-                    infoRow("Color Observations", "\(data.colorObservations.count)")
-                    infoRow("Shots", "\(data.shots.count)")
-                    infoRow("Scenes", "\(data.scenes.count)")
-                    infoRow("Frames", "\(data.frames.count)")
-                    infoRow("Entities", "\(data.entities.count)")
-                    infoRow("Entity Tracks", "\(data.entityTracks.count)")
-                    infoRow("Relationships", "\(data.relationships.count)")
-                    infoRow("Processors", "\(data.provenanceProcessors.count)")
-                }
-
-                if let vr = data.validationReport {
-                    section("Validation") {
-                        infoRow("Status", displayString(vr, "status"))
-                        infoRow("Core Status", displayString(vr, "core_status"))
-                        infoRow("Authenticity", displayString(vr, "authenticity_status"))
-                    }
+                    infoRow("Transcript", "\(data.entryCounts[.transcript] ?? 0)")
+                    infoRow("OCR / Text", "\(data.entryCounts[.ocr] ?? 0)")
+                    infoRow("Evidence Crops", "\(data.entryCounts[.evidenceCrops] ?? 0)")
+                    infoRow("Colors", "\(data.entryCounts[.colors] ?? 0)")
+                    infoRow("Scenes / Timeline", "\(data.entryCounts[.scenes] ?? 0)")
+                    infoRow("Entities", "\(data.entryCounts[.entities] ?? 0)")
+                    infoRow("Relationships", "\(data.entryCounts[.relationships] ?? 0)")
+                    infoRow("Provenance", "\(data.entryCounts[.provenance] ?? 0)")
+                    infoRow("Index Summary", "\(data.entryCounts[.index] ?? 0)")
                 }
             }
             .padding()
@@ -85,15 +85,30 @@ struct OverviewDetailView: View {
 // MARK: - Transcript Detail View
 
 struct TranscriptDetailView: View {
-    let data: SVPInspectorData
+    @ObservedObject var viewModel: SVPInspectorViewModel
     @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
-        if data.transcriptWords.isEmpty && data.transcriptSummary == nil {
+        switch viewModel.transcriptState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading transcript...")
+                .onAppear { viewModel.loadSectionIfNeeded(.transcript) }
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.transcript)
+            }
+        case .loaded(let data):
+            transcriptContent(data)
+        }
+    }
+
+    @ViewBuilder
+    private func transcriptContent(_ data: SVPInspectorTranscriptData) -> some View {
+        if data.words.isEmpty && data.summary == nil {
             EmptyStateView(message: "No transcript data found in this package.")
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                if let ts = data.transcriptSummary {
+                if let ts = data.summary {
                     HStack(spacing: 16) {
                         Label("\(displayString(ts, "word_count")) words", systemImage: "text.alignleft")
                         Label("\(displayString(ts, "speaker_count")) speakers", systemImage: "person.2")
@@ -105,7 +120,7 @@ struct TranscriptDetailView: View {
                     .padding(.horizontal, 4)
                 }
 
-                let rows = sortedRows(makeRows(data.transcriptWords), sortOrder: sortOrder)
+                let rows = sortedRows(makeRows(data.words), sortOrder: sortOrder)
                 Table(rows, sortOrder: $sortOrder) {
                     TableColumn("Text", value: \InspectorRow.text) { row in
                         Text(displayString(row.dict, "text"))
@@ -137,12 +152,27 @@ struct TranscriptDetailView: View {
 // MARK: - OCR / Text Detail View
 
 struct OCRDetailView: View {
-    let data: SVPInspectorData
+    @ObservedObject var viewModel: SVPInspectorViewModel
     @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
-        if data.textObservations.isEmpty && data.textRegions.isEmpty {
-            if let absence = data.textAbsence {
+        switch viewModel.textState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading OCR / text...")
+                .onAppear { viewModel.loadSectionIfNeeded(.ocr) }
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.ocr)
+            }
+        case .loaded(let data):
+            ocrContent(data)
+        }
+    }
+
+    @ViewBuilder
+    private func ocrContent(_ data: SVPInspectorTextData) -> some View {
+        if data.observations.isEmpty && data.regions.isEmpty {
+            if let absence = data.absence {
                 VStack(alignment: .leading, spacing: 8) {
                     EmptyStateView(message: "No text observations found.")
                         .frame(maxHeight: .infinity)
@@ -157,14 +187,14 @@ struct OCRDetailView: View {
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 16) {
-                    Label("\(data.textRegions.count) regions", systemImage: "rectangle.dashed")
-                    Label("\(data.textObservations.count) observations", systemImage: "text.magnifyingglass")
+                    Label("\(data.regions.count) regions", systemImage: "rectangle.dashed")
+                    Label("\(data.observations.count) observations", systemImage: "text.magnifyingglass")
                     Label("\(data.numericValues.count) numeric values", systemImage: "number")
                 }
                 .font(.caption)
                 .padding(.horizontal, 4)
 
-                let rows = sortedRows(makeRows(data.textObservations), sortOrder: sortOrder)
+                let rows = sortedRows(makeRows(data.observations), sortOrder: sortOrder)
                 Table(rows, sortOrder: $sortOrder) {
                     TableColumn("Raw Text", value: \InspectorRow.raw_text) { row in
                         Text(displayString(row.dict, "raw_text"))
@@ -260,15 +290,30 @@ private struct ColorBucketDots: View {
 // MARK: - Colors Detail View
 
 struct ColorsDetailView: View {
-    let data: SVPInspectorData
+    @ObservedObject var viewModel: SVPInspectorViewModel
     @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
-        if data.colorObservations.isEmpty {
+        switch viewModel.colorsState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading colors...")
+                .onAppear { viewModel.loadSectionIfNeeded(.colors) }
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.colors)
+            }
+        case .loaded(let data):
+            colorsContent(data)
+        }
+    }
+
+    @ViewBuilder
+    private func colorsContent(_ data: SVPInspectorColorsData) -> some View {
+        if data.observations.isEmpty {
             EmptyStateView(message: "No color observations found in this package.")
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                if let summary = data.colorSummary {
+                if let summary = data.summary {
                     HStack(spacing: 16) {
                         Label("\(displayString(summary, "color_observation_count")) observations", systemImage: "paintpalette")
                         Label(displayString(summary, "color_space"), systemImage: "circle.hexagongrid")
@@ -277,7 +322,7 @@ struct ColorsDetailView: View {
                     .padding(.horizontal, 4)
                 }
 
-                let rows = sortedRows(makeRows(data.colorObservations), sortOrder: sortOrder)
+                let rows = sortedRows(makeRows(data.observations), sortOrder: sortOrder)
                 Table(rows, sortOrder: $sortOrder) {
                     TableColumn("Target Type", value: \InspectorRow.target_type) { row in
                         Text(displayString(row.dict, "target_type"))
@@ -320,11 +365,26 @@ struct ColorsDetailView: View {
 // MARK: - Scenes / Timeline Detail View
 
 struct ScenesDetailView: View {
-    let data: SVPInspectorData
+    @ObservedObject var viewModel: SVPInspectorViewModel
     @State private var sceneSortOrder: [KeyPathComparator<InspectorRow>] = []
     @State private var shotSortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
+        switch viewModel.timelineState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading scenes / timeline...")
+                .onAppear { viewModel.loadSectionIfNeeded(.scenes) }
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.scenes)
+            }
+        case .loaded(let data):
+            timelineContent(data)
+        }
+    }
+
+    @ViewBuilder
+    private func timelineContent(_ data: SVPInspectorTimelineData) -> some View {
         if data.scenes.isEmpty && data.shots.isEmpty {
             EmptyStateView(message: "No scenes or shots found in this package.")
         } else {
@@ -390,10 +450,25 @@ struct ScenesDetailView: View {
 // MARK: - Entities Detail View
 
 struct EntitiesDetailView: View {
-    let data: SVPInspectorData
+    @ObservedObject var viewModel: SVPInspectorViewModel
     @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
+        switch viewModel.entitiesState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading entities...")
+                .onAppear { viewModel.loadSectionIfNeeded(.entities) }
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.entities)
+            }
+        case .loaded(let data):
+            entitiesContent(data)
+        }
+    }
+
+    @ViewBuilder
+    private func entitiesContent(_ data: SVPInspectorEntitiesData) -> some View {
         if data.entities.isEmpty {
             EmptyStateView(message: "No entities found in this package.")
         } else {
@@ -433,13 +508,95 @@ struct EntitiesDetailView: View {
     }
 }
 
+// MARK: - Relationships Detail View
+
+struct RelationshipsDetailView: View {
+    @ObservedObject var viewModel: SVPInspectorViewModel
+    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
+
+    var body: some View {
+        switch viewModel.relationshipsState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading relationships...")
+                .onAppear { viewModel.loadSectionIfNeeded(.relationships) }
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.relationships)
+            }
+        case .loaded(let data):
+            relationshipsContent(data)
+        }
+    }
+
+    @ViewBuilder
+    private func relationshipsContent(_ data: SVPInspectorRelationshipsData) -> some View {
+        if data.relationships.isEmpty {
+            EmptyStateView(message: "No relationships found in this package.")
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 16) {
+                    Label("\(data.relationships.count) relationships", systemImage: "point.3.connected.trianglepath.dotted")
+                }
+                .font(.caption)
+                .padding(.horizontal, 4)
+
+                let rows = sortedRows(makeRows(data.relationships), sortOrder: sortOrder)
+                Table(rows, sortOrder: $sortOrder) {
+                    TableColumn("Source", value: \InspectorRow.source_id) { row in
+                        Text(displayString(row.dict, "source_id"))
+                            .textSelection(.enabled)
+                    }
+                    .width(min: 80, ideal: 160)
+                    TableColumn("Type", value: \InspectorRow.type) { row in
+                        Text(displayString(row.dict, "type"))
+                            .textSelection(.enabled)
+                    }
+                    .width(min: 100, ideal: 180)
+                    TableColumn("Target", value: \InspectorRow.target_id) { row in
+                        Text(displayString(row.dict, "target_id"))
+                            .textSelection(.enabled)
+                    }
+                    .width(min: 80, ideal: 160)
+                    TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
+                        Text(formatMicroseconds(row.dict, "start_us"))
+                    }
+                    .width(min: 60, ideal: 80)
+                    TableColumn("End (s)", value: \InspectorRow.end_us) { row in
+                        Text(formatMicroseconds(row.dict, "end_us"))
+                    }
+                    .width(min: 60, ideal: 80)
+                    TableColumn("Confidence", value: \InspectorRow.confidence) { row in
+                        Text(displayString(row.dict, "confidence"))
+                    }
+                    .width(min: 60, ideal: 80)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Provenance / Validation Detail View
 
 struct ProvenanceDetailView: View {
-    let data: SVPInspectorData
+    @ObservedObject var viewModel: SVPInspectorViewModel
     @State private var procSortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
+        switch viewModel.provenanceState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading provenance...")
+                .onAppear { viewModel.loadSectionIfNeeded(.provenance) }
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.provenance)
+            }
+        case .loaded(let data):
+            provenanceContent(data)
+        }
+    }
+
+    @ViewBuilder
+    private func provenanceContent(_ data: SVPInspectorProvenanceData) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 if let vr = data.validationReport {
@@ -464,7 +621,7 @@ struct ProvenanceDetailView: View {
                     }
                 }
 
-                if let build = data.provenanceBuild {
+                if let build = data.build {
                     section("Build Info") {
                         infoRow("Builder", displayString(build, "builder"))
                         infoRow("Build UTC", displayString(build, "build_utc"))
@@ -473,9 +630,9 @@ struct ProvenanceDetailView: View {
                     }
                 }
 
-                if !data.provenanceProcessors.isEmpty {
-                    section("Processors (\(data.provenanceProcessors.count))") {
-                        let procRows = sortedRows(makeRows(data.provenanceProcessors), sortOrder: procSortOrder)
+                if !data.processors.isEmpty {
+                    section("Processors (\(data.processors.count))") {
+                        let procRows = sortedRows(makeRows(data.processors), sortOrder: procSortOrder)
                         Table(procRows, sortOrder: $procSortOrder) {
                             TableColumn("ID", value: \InspectorRow.id_string) { row in
                                 Text(displayString(row.dict, "id"))
@@ -490,7 +647,7 @@ struct ProvenanceDetailView: View {
                             }
                             .width(min: 50, ideal: 80)
                         }
-                        .frame(height: CGFloat(max(100, data.provenanceProcessors.count * 25)))
+                        .frame(height: CGFloat(max(100, data.processors.count * 25)))
                     }
                 }
 
@@ -505,7 +662,7 @@ struct ProvenanceDetailView: View {
                     }
                 }
 
-                if data.validationReport == nil && data.provenanceBuild == nil && data.provenanceProcessors.isEmpty {
+                if data.validationReport == nil && data.build == nil && data.processors.isEmpty {
                     EmptyStateView(message: "No provenance or validation data found.")
                 }
             }
@@ -539,20 +696,35 @@ struct ProvenanceDetailView: View {
 // MARK: - Index Summary Detail View
 
 struct IndexDetailView: View {
-    let data: SVPInspectorData
+    @ObservedObject var viewModel: SVPInspectorViewModel
 
     var body: some View {
-        if !data.hasIndex && data.indexManifest == nil {
+        switch viewModel.indexState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading index summary...")
+                .onAppear { viewModel.loadSectionIfNeeded(.index) }
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.index)
+            }
+        case .loaded(let data):
+            indexContent(data)
+        }
+    }
+
+    @ViewBuilder
+    private func indexContent(_ data: SVPInspectorIndexData) -> some View {
+        if !data.hasIndex && data.manifest == nil {
             EmptyStateView(message: "No search index found in this package.")
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     section("Index Status") {
                         infoRow("SQLite Present", data.hasIndex ? "Yes" : "No")
-                        infoRow("Manifest Present", data.indexManifest != nil ? "Yes" : "No")
+                        infoRow("Manifest Present", data.manifest != nil ? "Yes" : "No")
                     }
 
-                    if let im = data.indexManifest {
+                    if let im = data.manifest {
                         section("Index Manifest") {
                             infoRow("Schema Version", displayString(im, "schema_version"))
                             infoRow("Index Schema", displayString(im, "index_schema_version"))

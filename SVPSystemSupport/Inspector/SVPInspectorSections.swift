@@ -3,6 +3,43 @@ import SwiftUI
 
 // MARK: - Reusable Views
 
+struct LoadingStateView: View {
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.regular)
+            Text(message)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct FailedStateView: View {
+    let message: String
+    let retry: () -> Void
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 32))
+                .foregroundStyle(.red)
+            Text("Failed to load section")
+                .font(.headline)
+            Text(message)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            Button("Retry", action: retry)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 struct EmptyStateView: View {
     let message: String
 
@@ -29,6 +66,7 @@ enum SVPInspectorSection: String, CaseIterable, Identifiable {
     case colors
     case scenes
     case entities
+    case relationships
     case provenance
     case index
 
@@ -43,6 +81,7 @@ enum SVPInspectorSection: String, CaseIterable, Identifiable {
         case .colors: "Colors"
         case .scenes: "Scenes / Timeline"
         case .entities: "Entities"
+        case .relationships: "Relationships"
         case .provenance: "Provenance"
         case .index: "Index Summary"
         }
@@ -57,6 +96,7 @@ enum SVPInspectorSection: String, CaseIterable, Identifiable {
         case .colors: "paintpalette"
         case .scenes: "film"
         case .entities: "person.2"
+        case .relationships: "point.3.connected.trianglepath.dotted"
         case .provenance: "checkmark.shield"
         case .index: "tablecells"
         }
@@ -82,9 +122,10 @@ struct SVPInspectorSidebarView: View {
 // MARK: - Split View Controller
 
 final class SVPInspectorSplitViewController: NSSplitViewController {
-    private var data: SVPInspectorData?
+    private var viewModel: SVPInspectorViewModel?
     private var selectedSection = SVPInspectorSection.overview {
         didSet {
+            viewModel?.loadSectionIfNeeded(selectedSection)
             updateDetail()
         }
     }
@@ -92,10 +133,11 @@ final class SVPInspectorSplitViewController: NSSplitViewController {
     private var detailHostingController: NSHostingController<AnyView>?
     private var isTornDown = false
 
-    init(data: SVPInspectorData) {
-        self.data = data
+    init(viewModel: SVPInspectorViewModel) {
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
         configureSplitView()
+        viewModel.loadInitialData()
     }
 
     @available(*, unavailable)
@@ -112,7 +154,7 @@ final class SVPInspectorSplitViewController: NSSplitViewController {
     }
 
     private func configureSplitView() {
-        guard let data else { return }
+        guard let viewModel else { return }
 
         splitView.dividerStyle = .thin
 
@@ -127,7 +169,7 @@ final class SVPInspectorSplitViewController: NSSplitViewController {
         let detailHostingController = NSHostingController(
             rootView: Self.detailView(
                 for: selectedSection,
-                data: data
+                viewModel: viewModel
             )
         )
         let detailItem = NSSplitViewItem(viewController: detailHostingController)
@@ -138,11 +180,11 @@ final class SVPInspectorSplitViewController: NSSplitViewController {
     }
 
     private func updateDetail() {
-        guard let data, !isTornDown else { return }
+        guard let viewModel, !isTornDown else { return }
 
         detailHostingController?.rootView = Self.detailView(
             for: selectedSection,
-            data: data
+            viewModel: viewModel
         )
     }
 
@@ -152,7 +194,7 @@ final class SVPInspectorSplitViewController: NSSplitViewController {
 
         sidebarHostingController?.rootView = SVPInspectorSidebarView(selectedSection: .constant(.overview))
         detailHostingController?.rootView = AnyView(EmptyView())
-        data = nil
+        viewModel = nil
 
         while !splitViewItems.isEmpty {
             removeSplitViewItem(splitViewItems[0])
@@ -164,49 +206,29 @@ final class SVPInspectorSplitViewController: NSSplitViewController {
 
     private static func detailView(
         for section: SVPInspectorSection,
-        data: SVPInspectorData
+        viewModel: SVPInspectorViewModel
     ) -> AnyView {
         switch section {
         case .overview:
-            AnyView(OverviewDetailView(data: data))
+            AnyView(OverviewDetailView(viewModel: viewModel))
         case .transcript:
-            AnyView(TranscriptDetailView(data: data))
+            AnyView(TranscriptDetailView(viewModel: viewModel))
         case .ocr:
-            AnyView(OCRDetailView(data: data))
+            AnyView(OCRDetailView(viewModel: viewModel))
         case .evidenceCrops:
-            AnyView(EvidenceCropsDetailView(data: data))
+            AnyView(EvidenceCropsDetailView(viewModel: viewModel))
         case .colors:
-            AnyView(ColorsDetailView(data: data))
+            AnyView(ColorsDetailView(viewModel: viewModel))
         case .scenes:
-            AnyView(ScenesDetailView(data: data))
+            AnyView(ScenesDetailView(viewModel: viewModel))
         case .entities:
-            AnyView(EntitiesDetailView(data: data))
+            AnyView(EntitiesDetailView(viewModel: viewModel))
+        case .relationships:
+            AnyView(RelationshipsDetailView(viewModel: viewModel))
         case .provenance:
-            AnyView(ProvenanceDetailView(data: data))
+            AnyView(ProvenanceDetailView(viewModel: viewModel))
         case .index:
-            AnyView(IndexDetailView(data: data))
+            AnyView(IndexDetailView(viewModel: viewModel))
         }
-    }
-}
-
-// MARK: - Error View
-
-struct SVPInspectorErrorView: View {
-    let error: String
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 32))
-                .foregroundStyle(.red)
-            Text("Failed to open SVP package")
-                .font(.headline)
-            Text(error)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

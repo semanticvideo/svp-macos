@@ -5,26 +5,40 @@ import SwiftUI
 // MARK: - Evidence Crops Detail View
 
 struct EvidenceCropsDetailView: View {
-    let data: SVPInspectorData
+    @ObservedObject var viewModel: SVPInspectorViewModel
     @State private var quickLookController: EvidenceCropQuickLookController?
 
     var body: some View {
+        switch viewModel.evidenceCropsState {
+        case .idle, .loading:
+            LoadingStateView(message: "Loading evidence crops...")
+                .onAppear { viewModel.loadSectionIfNeeded(.evidenceCrops) }
+        case .failed(let message):
+            FailedStateView(message: message) {
+                viewModel.retrySection(.evidenceCrops)
+            }
+        case .loaded(let data):
+            cropsContent(data)
+        }
+    }
+
+    private func cropsContent(_ data: SVPInspectorEvidenceCropsData) -> some View {
         Group {
-            if data.evidenceCrops.isEmpty {
+            if data.crops.isEmpty {
                 EmptyStateView(message: "No evidence crops found in this package.")
             } else {
                 ScrollView {
                     LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 140, maximum: 180), spacing: 12)],
-                        spacing: 12
+                        columns: [GridItem(.adaptive(minimum: 160, maximum: 180), spacing: 16)],
+                        spacing: 14
                     ) {
-                        ForEach(Array(data.evidenceCrops.enumerated()), id: \.offset) { index, crop in
+                        ForEach(Array(data.crops.enumerated()), id: \.offset) { index, crop in
                             EvidenceCropCell(
+                                packageURL: data.fileURL,
                                 crop: crop,
-                                imageData: data.evidenceCropImages[crop["crop_file_path"] as? String ?? ""],
                                 index: index
                             ) {
-                                showQuickLook(startIndex: index)
+                                showQuickLook(data: data, startIndex: index)
                             }
                         }
                     }
@@ -35,16 +49,16 @@ struct EvidenceCropsDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func showQuickLook(startIndex: Int) {
+    private func showQuickLook(data: SVPInspectorEvidenceCropsData, startIndex: Int) {
         let controller = EvidenceCropQuickLookController(
-            crops: data.evidenceCrops,
-            images: data.evidenceCropImages,
+            packageURL: data.fileURL,
+            crops: data.crops,
             startIndex: startIndex
         )
         quickLookController = controller
 
         if let windowController = NSApp.keyWindow?.windowController as? SVPInspectorWindowController {
-            windowController.showQuickLook(dataSource: controller, startIndex: startIndex)
+            windowController.showQuickLook(dataSource: controller)
         }
     }
 }
@@ -52,27 +66,31 @@ struct EvidenceCropsDetailView: View {
 // MARK: - Evidence Crop Cell
 
 struct EvidenceCropCell: View {
+    let packageURL: URL
     let crop: [String: Any]
-    let imageData: Data?
     let index: Int
     let onTap: () -> Void
+    @State private var imageData: Data?
+    @State private var didRequestImage = false
 
     var body: some View {
+        let placeholderSize = thumbnailSize(for: crop)
+
         VStack(spacing: 4) {
             if let imageData, let nsImage = NSImage(data: imageData) {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 160, maxHeight: 120)
+                    .frame(width: placeholderSize.width, height: placeholderSize.height)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary, lineWidth: 0.5))
             } else {
                 RoundedRectangle(cornerRadius: 6)
                     .fill(.quaternary)
-                    .frame(width: 160, height: 120)
+                    .frame(width: placeholderSize.width, height: placeholderSize.height)
                     .overlay(
                         Image(systemName: "photo")
-                            .font(.title)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     )
             }
@@ -93,20 +111,69 @@ struct EvidenceCropCell: View {
         .onTapGesture {
             onTap()
         }
+        .onAppear {
+            loadImageIfNeeded()
+        }
+    }
+
+    private func loadImageIfNeeded() {
+        guard !didRequestImage else { return }
+        didRequestImage = true
+
+        guard let cropFilePath = crop["crop_file_path"] as? String, !cropFilePath.isEmpty else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let data = try? SVPInspectorDataLoader.loadEvidenceCropImage(
+                packageURL: packageURL,
+                cropFilePath: cropFilePath
+            )
+            DispatchQueue.main.async {
+                imageData = data ?? nil
+            }
+        }
+    }
+
+    private func thumbnailSize(for crop: [String: Any]) -> CGSize {
+        let maxWidth: CGFloat = 160
+        let maxHeight: CGFloat = 120
+        guard let cropSize = cropPixelSize(for: crop),
+              cropSize.width > 0,
+              cropSize.height > 0 else {
+            return CGSize(width: maxWidth, height: maxHeight)
+        }
+
+        let scale = min(maxWidth / cropSize.width, maxHeight / cropSize.height)
+        return CGSize(width: cropSize.width * scale, height: cropSize.height * scale)
+    }
+
+    private func cropPixelSize(for crop: [String: Any]) -> CGSize? {
+        guard let bbox = crop["crop_bbox"] as? [Any], bbox.count >= 4,
+              let x1 = numberValue(bbox[0]),
+              let y1 = numberValue(bbox[1]),
+              let x2 = numberValue(bbox[2]),
+              let y2 = numberValue(bbox[3]) else { return nil }
+
+        return CGSize(width: abs(x2 - x1), height: abs(y2 - y1))
+    }
+
+    private func numberValue(_ value: Any) -> CGFloat? {
+        if let number = value as? NSNumber { return CGFloat(truncating: number) }
+        if let double = value as? Double { return CGFloat(double) }
+        if let int = value as? Int { return CGFloat(int) }
+        return nil
     }
 }
 
 // MARK: - Quick Look Data Source
 
 final class EvidenceCropQuickLookController: NSObject, QLPreviewPanelDataSource {
+    private let packageURL: URL
     private let crops: [[String: Any]]
-    private let images: [String: Data]
     let startIndex: Int
     private(set) var tempURLs: [URL] = []
 
-    init(crops: [[String: Any]], images: [String: Data], startIndex: Int) {
+    init(packageURL: URL, crops: [[String: Any]], startIndex: Int) {
+        self.packageURL = packageURL
         self.crops = crops
-        self.images = images
         self.startIndex = startIndex
         super.init()
         writeTempFiles()
@@ -117,15 +184,18 @@ final class EvidenceCropQuickLookController: NSObject, QLPreviewPanelDataSource 
             .appendingPathComponent("svp-evidence-crops", isDirectory: true)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        for (index, crop) in crops.enumerated() {
-            guard let cropFilePath = crop["crop_file_path"] as? String,
-                  let imageData = images[cropFilePath] else { continue }
+        guard startIndex >= 0, startIndex < crops.count else { return }
+        let crop = crops[startIndex]
+        guard let cropFilePath = crop["crop_file_path"] as? String,
+              let imageData = try? SVPInspectorDataLoader.loadEvidenceCropImage(
+                packageURL: packageURL,
+                cropFilePath: cropFilePath
+              ) else { return }
 
-            let ext = (cropFilePath as NSString).pathExtension.isEmpty ? "png" : (cropFilePath as NSString).pathExtension
-            let url = tempDir.appendingPathComponent("crop_\(String(format: "%05d", index)).\(ext)")
-            try? imageData.write(to: url)
-            tempURLs.append(url)
-        }
+        let ext = (cropFilePath as NSString).pathExtension.isEmpty ? "png" : (cropFilePath as NSString).pathExtension
+        let url = tempDir.appendingPathComponent("crop_\(String(format: "%05d", startIndex)).\(ext)")
+        try? imageData.write(to: url)
+        tempURLs.append(url)
     }
 
     // MARK: - QLPreviewPanelDataSource

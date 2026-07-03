@@ -8,7 +8,6 @@ final class SVPInspectorWindowController: NSWindowController {
     private let splitViewController: SVPInspectorSplitViewController
     private let toolbarProvider: SVPInspectorToolbarProvider
     private var quickLookDataSource: QLPreviewPanelDataSource?
-    private var quickLookStartIndex: Int = 0
     private var didTearDown = false
     var onClose: (() -> Void)?
 
@@ -17,13 +16,13 @@ final class SVPInspectorWindowController: NSWindowController {
         static let minimumSize = NSSize(width: 600, height: 400)
     }
 
-    init(data: SVPInspectorData, windowTitle: String) {
-        let splitViewController = SVPInspectorSplitViewController(data: data)
+    init(viewModel: SVPInspectorViewModel) {
+        let splitViewController = SVPInspectorSplitViewController(viewModel: viewModel)
         let toolbarProvider = SVPInspectorToolbarProvider(
             toggleSidebar: { [weak splitViewController] in
                 splitViewController?.toggleSidebar(nil)
             },
-            fileName: windowTitle
+            fileName: viewModel.windowTitle
         )
 
         let window = NSWindow(
@@ -32,7 +31,7 @@ final class SVPInspectorWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = windowTitle
+        window.title = viewModel.windowTitle
         window.titlebarAppearsTransparent = true
         window.toolbarStyle = .unified
         window.minSize = Metrics.minimumSize
@@ -77,9 +76,8 @@ final class SVPInspectorWindowController: NSWindowController {
 
     // MARK: - Quick Look
 
-    func showQuickLook(dataSource: QLPreviewPanelDataSource, startIndex: Int) {
+    func showQuickLook(dataSource: QLPreviewPanelDataSource) {
         quickLookDataSource = dataSource
-        quickLookStartIndex = startIndex
 
         let panel = QLPreviewPanel.shared()!
         if panel.isVisible { panel.close() }
@@ -98,9 +96,7 @@ extension SVPInspectorWindowController {
 
     override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
         panel.dataSource = quickLookDataSource
-        if let ds = quickLookDataSource as? EvidenceCropQuickLookController {
-            panel.currentPreviewItemIndex = min(quickLookStartIndex, max(0, ds.tempURLs.count - 1))
-        }
+        panel.currentPreviewItemIndex = 0
     }
 
     override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
