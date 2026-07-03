@@ -1,19 +1,36 @@
 import Foundation
 @_spi(Inspector) import SVPReader
 
-nonisolated struct SVPRelationshipRow {
-    let sourceID: String
-    let type: String
-    let targetID: String
-    let startText: String
-    let endText: String
-    let confidence: String
+nonisolated struct SVPInspectorJSONLSortValue: Comparable {
+    let value: Any?
+
+    static func < (lhs: SVPInspectorJSONLSortValue, rhs: SVPInspectorJSONLSortValue) -> Bool {
+        if lhs.value == nil && rhs.value == nil { return false }
+        if lhs.value == nil { return true }
+        if rhs.value == nil { return false }
+
+        if let lhsArray = lhs.value as? [Any], let rhsArray = rhs.value as? [Any] {
+            return lhsArray.count < rhsArray.count
+        }
+        if let lhsNumber = lhs.value as? NSNumber, let rhsNumber = rhs.value as? NSNumber {
+            return lhsNumber.doubleValue < rhsNumber.doubleValue
+        }
+
+        return String(describing: lhs.value!) < String(describing: rhs.value!)
+    }
+
+    static func == (lhs: SVPInspectorJSONLSortValue, rhs: SVPInspectorJSONLSortValue) -> Bool {
+        if let lhsNumber = lhs.value as? NSNumber, let rhsNumber = rhs.value as? NSNumber {
+            return lhsNumber.doubleValue == rhsNumber.doubleValue
+        }
+        return String(describing: lhs.value ?? "") == String(describing: rhs.value ?? "")
+    }
 }
 
-nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
-    private static let entryName = "relationships/relationships.jsonl"
+nonisolated final class SVPInspectorJSONLStore: @unchecked Sendable {
     private static let cacheLimit = 512
 
+    let entryName: String
     let rowCount: Int
     let uncompressedSize: UInt64?
 
@@ -24,17 +41,22 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
     private let fileSize: UInt64
     private let readLock = NSLock()
     private let cacheLock = NSLock()
-    private var rowCache: [Int: SVPRelationshipRow] = [:]
+    private var rowCache: [Int: [String: Any]] = [:]
     private var cacheOrder: [Int] = []
 
-    init(packageURL: URL) throws {
+    convenience init(packageURL: URL, entryName: String) throws {
         let reader = try SVPReader(url: packageURL)
         try reader.validateSVP()
+        try self.init(reader: reader, entryName: entryName)
+    }
 
-        let uncompressedSize = reader.entryUncompressedSize(Self.entryName)
+    init(reader: SVPReader, entryName: String) throws {
+        self.entryName = entryName
+
+        let uncompressedSize = reader.entryUncompressedSize(entryName)
         let tempDirectoryURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("svp-relationships-\(UUID().uuidString)", isDirectory: true)
-        let fileURL = tempDirectoryURL.appendingPathComponent("relationships.jsonl")
+            .appendingPathComponent("svp-inspector-jsonl-\(UUID().uuidString)", isDirectory: true)
+        let fileURL = tempDirectoryURL.appendingPathComponent(Self.safeFileName(for: entryName))
 
         try FileManager.default.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
 
@@ -42,13 +64,13 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
             let fileSize: UInt64
             let lineOffsets: [UInt64]
 
-            if reader.hasEntry(Self.entryName) {
-                try reader.extractEntry(Self.entryName, to: fileURL)
+            if reader.hasEntry(entryName) {
+                try reader.extractEntry(entryName, to: fileURL)
                 fileSize = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? UInt64) ?? 0
                 lineOffsets = try Self.indexLineOffsets(fileURL: fileURL, fileSize: fileSize)
             } else {
                 guard FileManager.default.createFile(atPath: fileURL.path, contents: nil) else {
-                    throw SVPRelationshipJSONLStoreError.tempFileCreateFailed(fileURL.path)
+                    throw SVPInspectorJSONLStoreError.tempFileCreateFailed(fileURL.path)
                 }
                 fileSize = 0
                 lineOffsets = []
@@ -72,25 +94,31 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
         try? FileManager.default.removeItem(at: tempDirectoryURL)
     }
 
-    func row(at index: Int) -> SVPRelationshipRow? {
+    func row(at index: Int) -> [String: Any]? {
         guard index >= 0, index < rowCount else { return nil }
         if let cached = cachedRow(at: index) { return cached }
 
         guard let data = readLineData(at: index),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+              let row = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return nil
         }
 
-        let row = SVPRelationshipRow(
-            sourceID: displayValue(json["source_id"]),
-            type: displayValue(json["type"]),
-            targetID: displayValue(json["target_id"]),
-            startText: microsecondsValue(json["start_us"]),
-            endText: microsecondsValue(json["end_us"]),
-            confidence: displayValue(json["confidence"])
-        )
         cache(row, at: index)
         return row
+    }
+
+    func text(at index: Int, key: String) -> String {
+        guard let row = row(at: index) else { return "—" }
+        return Self.displayString(row, key)
+    }
+
+    func microsecondsText(at index: Int, key: String) -> String {
+        guard let row = row(at: index) else { return "—" }
+        return Self.formatMicroseconds(row, key)
+    }
+
+    func sortValue(at index: Int, key: String) -> SVPInspectorJSONLSortValue {
+        SVPInspectorJSONLSortValue(value: row(at: index)?[key])
     }
 
     private func readLineData(at index: Int) -> Data? {
@@ -114,7 +142,7 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
         }
     }
 
-    private func cache(_ row: SVPRelationshipRow, at index: Int) {
+    private func cache(_ row: [String: Any], at index: Int) {
         cacheLock.lock()
         defer { cacheLock.unlock() }
 
@@ -128,7 +156,7 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
         }
     }
 
-    private func cachedRow(at index: Int) -> SVPRelationshipRow? {
+    private func cachedRow(at index: Int) -> [String: Any]? {
         cacheLock.lock()
         defer { cacheLock.unlock() }
         return rowCache[index]
@@ -162,19 +190,29 @@ nonisolated final class SVPRelationshipJSONLStore: @unchecked Sendable {
         return offsets
     }
 
-    private func displayValue(_ value: Any?) -> String {
-        guard let value else { return "—" }
+    private static func safeFileName(for entryName: String) -> String {
+        entryName.replacingOccurrences(of: "/", with: "_")
+    }
+
+    private static func displayString(_ dict: [String: Any], _ key: String) -> String {
+        guard let value = dict[key] else { return "—" }
         if let string = value as? String { return string.isEmpty ? "—" : string }
         if let number = value as? NSNumber { return number.stringValue }
+        if let array = value as? [Any] { return "\(array.count) items" }
+        if let dict = value as? [String: Any] {
+            if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted, .sortedKeys]),
+               let string = String(data: data, encoding: .utf8) { return string }
+            return String(describing: dict)
+        }
         return String(describing: value)
     }
 
-    private func microsecondsValue(_ value: Any?) -> String {
-        guard let number = value as? NSNumber else { return "—" }
+    private static func formatMicroseconds(_ dict: [String: Any], _ key: String) -> String {
+        guard let number = dict[key] as? NSNumber else { return "—" }
         return String(format: "%.3f", number.doubleValue / 1_000_000)
     }
 }
 
-nonisolated enum SVPRelationshipJSONLStoreError: Error {
+nonisolated enum SVPInspectorJSONLStoreError: Error {
     case tempFileCreateFailed(String)
 }

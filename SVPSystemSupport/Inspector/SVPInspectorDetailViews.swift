@@ -87,7 +87,6 @@ struct OverviewDetailView: View {
 
 struct TranscriptDetailView: View {
     @ObservedObject var viewModel: SVPInspectorViewModel
-    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         switch viewModel.transcriptState {
@@ -105,7 +104,7 @@ struct TranscriptDetailView: View {
 
     @ViewBuilder
     private func transcriptContent(_ data: SVPInspectorTranscriptData) -> some View {
-        if data.words.isEmpty && data.summary == nil {
+        if data.words.rowCount == 0 && data.summary == nil {
             EmptyStateView(message: "No transcript data found in this package.")
         } else {
             VStack(alignment: .leading, spacing: 8) {
@@ -121,30 +120,13 @@ struct TranscriptDetailView: View {
                     .padding(.horizontal, 4)
                 }
 
-                let rows = sortedRows(makeRows(data.words), sortOrder: sortOrder)
-                Table(rows, sortOrder: $sortOrder) {
-                    TableColumn("Text", value: \InspectorRow.text) { row in
-                        Text(displayString(row.dict, "text"))
-                            .textSelection(.enabled)
-                    }
-                    .width(min: 80, ideal: 200)
-                    TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
-                        Text(formatMicroseconds(row.dict, "start_us"))
-                    }
-                    .width(min: 60, ideal: 80)
-                    TableColumn("End (s)", value: \InspectorRow.end_us) { row in
-                        Text(formatMicroseconds(row.dict, "end_us"))
-                    }
-                    .width(min: 60, ideal: 80)
-                    TableColumn("Speaker", value: \InspectorRow.speaker_id) { row in
-                        Text(displayString(row.dict, "speaker_id"))
-                    }
-                    .width(min: 80, ideal: 120)
-                    TableColumn("Confidence", value: \InspectorRow.confidence) { row in
-                        Text(displayString(row.dict, "confidence"))
-                    }
-                    .width(min: 60, ideal: 80)
-                }
+                InspectorJSONLTableView(store: data.words, columns: [
+                    .text("Text", key: "text", width: 200),
+                    .microseconds("Start (s)", key: "start_us", width: 80),
+                    .microseconds("End (s)", key: "end_us", width: 80),
+                    .text("Speaker", key: "speaker_id", width: 120),
+                    .text("Confidence", key: "confidence", width: 80)
+                ])
             }
         }
     }
@@ -154,7 +136,6 @@ struct TranscriptDetailView: View {
 
 struct OCRDetailView: View {
     @ObservedObject var viewModel: SVPInspectorViewModel
-    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         switch viewModel.textState {
@@ -172,7 +153,7 @@ struct OCRDetailView: View {
 
     @ViewBuilder
     private func ocrContent(_ data: SVPInspectorTextData) -> some View {
-        if data.observations.isEmpty && data.regions.isEmpty {
+        if data.observations.rowCount == 0 && data.regions.rowCount == 0 {
             if let absence = data.absence {
                 VStack(alignment: .leading, spacing: 8) {
                     EmptyStateView(message: "No text observations found.")
@@ -188,37 +169,20 @@ struct OCRDetailView: View {
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 16) {
-                    Label("\(data.regions.count) regions", systemImage: "rectangle.dashed")
-                    Label("\(data.observations.count) observations", systemImage: "text.magnifyingglass")
-                    Label("\(data.numericValues.count) numeric values", systemImage: "number")
+                    Label("\(data.regions.rowCount) regions", systemImage: "rectangle.dashed")
+                    Label("\(data.observations.rowCount) observations", systemImage: "text.magnifyingglass")
+                    Label("\(data.numericValues.rowCount) numeric values", systemImage: "number")
                 }
                 .font(.caption)
                 .padding(.horizontal, 4)
 
-                let rows = sortedRows(makeRows(data.observations), sortOrder: sortOrder)
-                Table(rows, sortOrder: $sortOrder) {
-                    TableColumn("Raw Text", value: \InspectorRow.raw_text) { row in
-                        Text(displayString(row.dict, "raw_text"))
-                            .textSelection(.enabled)
-                    }
-                    .width(min: 80, ideal: 200)
-                    TableColumn("Normalized", value: \InspectorRow.normalized_text) { row in
-                        Text(displayString(row.dict, "normalized_text"))
-                    }
-                    .width(min: 80, ideal: 150)
-                    TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
-                        Text(formatMicroseconds(row.dict, "start_us"))
-                    }
-                    .width(min: 60, ideal: 80)
-                    TableColumn("Confidence", value: \InspectorRow.confidence) { row in
-                        Text(displayString(row.dict, "confidence"))
-                    }
-                    .width(min: 60, ideal: 80)
-                    TableColumn("Region ID", value: \InspectorRow.text_region_id) { row in
-                        Text(displayString(row.dict, "text_region_id"))
-                    }
-                    .width(min: 80, ideal: 140)
-                }
+                InspectorJSONLTableView(store: data.observations, columns: [
+                    .text("Raw Text", key: "raw_text", width: 200),
+                    .text("Normalized", key: "normalized_text", width: 150),
+                    .microseconds("Start (s)", key: "start_us", width: 80),
+                    .text("Confidence", key: "confidence", width: 80),
+                    .text("Region ID", key: "text_region_id", width: 140)
+                ])
             }
         }
     }
@@ -288,11 +252,25 @@ private struct ColorBucketDots: View {
     }
 }
 
+private func formatColorBuckets(_ bucketCoverage: [String: Any]?) -> String {
+    guard let bucketCoverage else { return "—" }
+    let buckets = bucketCoverage.compactMap { key, value -> (String, Double)? in
+        guard let number = value as? NSNumber, number.doubleValue > 0 else { return nil }
+        return (key, number.doubleValue)
+    }
+    .sorted { $0.1 > $1.1 }
+    .prefix(4)
+
+    guard !buckets.isEmpty else { return "—" }
+    return buckets
+        .map { "\($0.0) \(Int(($0.1 * 100).rounded()))%" }
+        .joined(separator: ", ")
+}
+
 // MARK: - Colors Detail View
 
 struct ColorsDetailView: View {
     @ObservedObject var viewModel: SVPInspectorViewModel
-    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         switch viewModel.colorsState {
@@ -310,7 +288,7 @@ struct ColorsDetailView: View {
 
     @ViewBuilder
     private func colorsContent(_ data: SVPInspectorColorsData) -> some View {
-        if data.observations.isEmpty {
+        if data.observations.rowCount == 0 {
             EmptyStateView(message: "No color observations found in this package.")
         } else {
             VStack(alignment: .leading, spacing: 8) {
@@ -323,41 +301,17 @@ struct ColorsDetailView: View {
                     .padding(.horizontal, 4)
                 }
 
-                let rows = sortedRows(makeRows(data.observations), sortOrder: sortOrder)
-                Table(rows, sortOrder: $sortOrder) {
-                    TableColumn("Target Type", value: \InspectorRow.target_type) { row in
-                        Text(displayString(row.dict, "target_type"))
-                    }
-                    .width(min: 60, ideal: 100)
-                    TableColumn("Target ID", value: \InspectorRow.target_id) { row in
-                        Text(displayString(row.dict, "target_id"))
-                    }
-                    .width(min: 80, ideal: 140)
-                    TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
-                        Text(formatMicroseconds(row.dict, "start_us"))
-                    }
-                    .width(min: 60, ideal: 80)
-                    TableColumn("Dominant", value: \InspectorRow.dominant_bucket) { row in
-                        Text(displayString(row.dict, "dominant_bucket"))
-                    }
-                    .width(min: 60, ideal: 100)
-                    TableColumn("Breakdown") { row in
-                        if let buckets = row.dict["bucket_coverage"] as? [String: Any] {
-                            ColorBucketDots(bucketCoverage: buckets)
-                        } else {
-                            Text("—")
-                        }
-                    }
-                    .width(min: 124, ideal: 124)
-                    TableColumn("Coverage", value: \InspectorRow.coverage_total) { row in
-                        Text(displayString(row.dict, "coverage_total"))
-                    }
-                    .width(min: 60, ideal: 80)
-                    TableColumn("Quality", value: \InspectorRow.quality_score) { row in
-                        Text(displayString(row.dict, "quality_score"))
-                    }
-                    .width(min: 50, ideal: 70)
-                }
+                InspectorJSONLTableView(store: data.observations, columns: [
+                    .text("Target Type", key: "target_type", width: 100),
+                    .text("Target ID", key: "target_id", width: 140),
+                    .microseconds("Start (s)", key: "start_us", width: 80),
+                    .text("Dominant", key: "dominant_bucket", width: 100),
+                    .custom("Breakdown", width: 160) { row in
+                        formatColorBuckets(row["bucket_coverage"] as? [String: Any])
+                    },
+                    .text("Coverage", key: "coverage_total", width: 80),
+                    .text("Quality", key: "quality_score", width: 70)
+                ])
             }
         }
     }
@@ -367,8 +321,6 @@ struct ColorsDetailView: View {
 
 struct ScenesDetailView: View {
     @ObservedObject var viewModel: SVPInspectorViewModel
-    @State private var sceneSortOrder: [KeyPathComparator<InspectorRow>] = []
-    @State private var shotSortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         switch viewModel.timelineState {
@@ -386,62 +338,35 @@ struct ScenesDetailView: View {
 
     @ViewBuilder
     private func timelineContent(_ data: SVPInspectorTimelineData) -> some View {
-        if data.scenes.isEmpty && data.shots.isEmpty {
+        if data.scenes.rowCount == 0 && data.shots.rowCount == 0 {
             EmptyStateView(message: "No scenes or shots found in this package.")
         } else {
             VStack(alignment: .leading, spacing: 12) {
-                if !data.scenes.isEmpty {
-                    Text("Scenes (\(data.scenes.count))")
+                if data.scenes.rowCount > 0 {
+                    Text("Scenes (\(data.scenes.rowCount))")
                         .font(.headline)
 
-                    let sceneRows = sortedRows(makeRows(data.scenes), sortOrder: sceneSortOrder)
-                    Table(sceneRows, sortOrder: $sceneSortOrder) {
-                        TableColumn("ID", value: \InspectorRow.id_string) { row in
-                            Text(displayString(row.dict, "id"))
+                    InspectorJSONLTableView(store: data.scenes, columns: [
+                        .text("ID", key: "id", width: 140),
+                        .microseconds("Start (s)", key: "start_us", width: 80),
+                        .microseconds("End (s)", key: "end_us", width: 80),
+                        .custom("Shots", width: 60) { row in
+                            if let shots = row["shot_ids"] as? [Any] { return "\(shots.count)" }
+                            return "—"
                         }
-                        .width(min: 80, ideal: 140)
-                        TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
-                            Text(formatMicroseconds(row.dict, "start_us"))
-                        }
-                        .width(min: 60, ideal: 80)
-                        TableColumn("End (s)", value: \InspectorRow.end_us) { row in
-                            Text(formatMicroseconds(row.dict, "end_us"))
-                        }
-                        .width(min: 60, ideal: 80)
-                        TableColumn("Shots", value: \InspectorRow.shot_ids) { row in
-                            if let shots = row.dict["shot_ids"] as? [Any] {
-                                Text("\(shots.count)")
-                            } else {
-                                Text("—")
-                            }
-                        }
-                        .width(min: 50, ideal: 60)
-                    }
+                    ])
                 }
 
-                if !data.shots.isEmpty {
-                    Text("Shots (\(data.shots.count))")
+                if data.shots.rowCount > 0 {
+                    Text("Shots (\(data.shots.rowCount))")
                         .font(.headline)
 
-                    let shotRows = sortedRows(makeRows(data.shots), sortOrder: shotSortOrder)
-                    Table(shotRows, sortOrder: $shotSortOrder) {
-                        TableColumn("ID", value: \InspectorRow.id_string) { row in
-                            Text(displayString(row.dict, "id"))
-                        }
-                        .width(min: 80, ideal: 140)
-                        TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
-                            Text(formatMicroseconds(row.dict, "start_us"))
-                        }
-                        .width(min: 60, ideal: 80)
-                        TableColumn("End (s)", value: \InspectorRow.end_us) { row in
-                            Text(formatMicroseconds(row.dict, "end_us"))
-                        }
-                        .width(min: 60, ideal: 80)
-                        TableColumn("Cut In", value: \InspectorRow.cut_type_in) { row in
-                            Text(displayString(row.dict, "cut_type_in"))
-                        }
-                        .width(min: 60, ideal: 100)
-                    }
+                    InspectorJSONLTableView(store: data.shots, columns: [
+                        .text("ID", key: "id", width: 140),
+                        .microseconds("Start (s)", key: "start_us", width: 80),
+                        .microseconds("End (s)", key: "end_us", width: 80),
+                        .text("Cut In", key: "cut_type_in", width: 100)
+                    ])
                 }
             }
         }
@@ -452,7 +377,6 @@ struct ScenesDetailView: View {
 
 struct EntitiesDetailView: View {
     @ObservedObject var viewModel: SVPInspectorViewModel
-    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         switch viewModel.entitiesState {
@@ -470,40 +394,24 @@ struct EntitiesDetailView: View {
 
     @ViewBuilder
     private func entitiesContent(_ data: SVPInspectorEntitiesData) -> some View {
-        if data.entities.isEmpty {
+        if data.entities.rowCount == 0 {
             EmptyStateView(message: "No entities found in this package.")
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 16) {
-                    Label("\(data.entities.count) entities", systemImage: "person.2")
-                    Label("\(data.entityTracks.count) tracks", systemImage: "arrow.triangle.branch")
+                    Label("\(data.entities.rowCount) entities", systemImage: "person.2")
+                    Label("\(data.entityTracks.rowCount) tracks", systemImage: "arrow.triangle.branch")
                 }
                 .font(.caption)
                 .padding(.horizontal, 4)
 
-                let rows = sortedRows(makeRows(data.entities), sortOrder: sortOrder)
-                Table(rows, sortOrder: $sortOrder) {
-                    TableColumn("ID", value: \InspectorRow.id_string) { row in
-                        Text(displayString(row.dict, "id"))
-                    }
-                    .width(min: 80, ideal: 140)
-                    TableColumn("Type", value: \InspectorRow.entity_type) { row in
-                        Text(displayString(row.dict, "entity_type"))
-                    }
-                    .width(min: 60, ideal: 120)
-                    TableColumn("First Seen (s)", value: \InspectorRow.first_seen_us) { row in
-                        Text(formatMicroseconds(row.dict, "first_seen_us"))
-                    }
-                    .width(min: 60, ideal: 100)
-                    TableColumn("Last Seen (s)", value: \InspectorRow.last_seen_us) { row in
-                        Text(formatMicroseconds(row.dict, "last_seen_us"))
-                    }
-                    .width(min: 60, ideal: 100)
-                    TableColumn("Avg Visibility", value: \InspectorRow.average_visibility) { row in
-                        Text(displayString(row.dict, "average_visibility"))
-                    }
-                    .width(min: 60, ideal: 90)
-                }
+                InspectorJSONLTableView(store: data.entities, columns: [
+                    .text("ID", key: "id", width: 140),
+                    .text("Type", key: "entity_type", width: 120),
+                    .microseconds("First Seen (s)", key: "first_seen_us", width: 100),
+                    .microseconds("Last Seen (s)", key: "last_seen_us", width: 100),
+                    .text("Avg Visibility", key: "average_visibility", width: 90)
+                ])
             }
         }
     }
@@ -543,17 +451,71 @@ struct RelationshipsDetailView: View {
                 .font(.caption)
                 .padding(.horizontal, 4)
 
-                RelationshipsTableView(store: data.store)
+                InspectorJSONLTableView(store: data.store, columns: [
+                    .text("Source", key: "source_id", width: 170),
+                    .text("Type", key: "type", width: 190),
+                    .text("Target", key: "target_id", width: 170),
+                    .microseconds("Start (s)", key: "start_us", width: 80),
+                    .microseconds("End (s)", key: "end_us", width: 80),
+                    .text("Confidence", key: "confidence", width: 90)
+                ])
             }
         }
     }
 }
 
-private struct RelationshipsTableView: NSViewRepresentable {
-    let store: SVPRelationshipJSONLStore
+private struct InspectorJSONLColumn {
+    let title: String
+    let width: CGFloat
+    let minWidth: CGFloat
+    let text: (SVPInspectorJSONLStore, Int) -> String
+    let sortValue: ((SVPInspectorJSONLStore, Int) -> SVPInspectorJSONLSortValue)?
+
+    static func text(_ title: String, key: String, width: CGFloat, minWidth: CGFloat = 60) -> InspectorJSONLColumn {
+        InspectorJSONLColumn(
+            title: title,
+            width: width,
+            minWidth: minWidth,
+            text: { store, row in store.text(at: row, key: key) },
+            sortValue: { store, row in store.sortValue(at: row, key: key) }
+        )
+    }
+
+    static func microseconds(_ title: String, key: String, width: CGFloat, minWidth: CGFloat = 60) -> InspectorJSONLColumn {
+        InspectorJSONLColumn(
+            title: title,
+            width: width,
+            minWidth: minWidth,
+            text: { store, row in store.microsecondsText(at: row, key: key) },
+            sortValue: { store, row in store.sortValue(at: row, key: key) }
+        )
+    }
+
+    static func custom(
+        _ title: String,
+        width: CGFloat,
+        minWidth: CGFloat = 60,
+        text: @escaping ([String: Any]) -> String
+    ) -> InspectorJSONLColumn {
+        InspectorJSONLColumn(
+            title: title,
+            width: width,
+            minWidth: minWidth,
+            text: { store, row in
+                guard let dict = store.row(at: row) else { return "—" }
+                return text(dict)
+            },
+            sortValue: nil
+        )
+    }
+}
+
+private struct InspectorJSONLTableView: NSViewRepresentable {
+    let store: SVPInspectorJSONLStore
+    let columns: [InspectorJSONLColumn]
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(store: store)
+        Coordinator(store: store, columns: columns)
     }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -570,12 +532,9 @@ private struct RelationshipsTableView: NSViewRepresentable {
         tableView.delegate = context.coordinator
         tableView.dataSource = context.coordinator
 
-        addColumn("source", title: "Source", width: 170, to: tableView)
-        addColumn("type", title: "Type", width: 190, to: tableView)
-        addColumn("target", title: "Target", width: 170, to: tableView)
-        addColumn("start", title: "Start (s)", width: 80, to: tableView)
-        addColumn("end", title: "End (s)", width: 80, to: tableView)
-        addColumn("confidence", title: "Confidence", width: 90, to: tableView)
+        for (index, column) in columns.enumerated() {
+            addColumn(index: index, column: column, to: tableView)
+        }
 
         scrollView.documentView = tableView
         return scrollView
@@ -583,24 +542,32 @@ private struct RelationshipsTableView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.store = store
+        context.coordinator.columns = columns
         if let tableView = scrollView.documentView as? NSTableView {
+            context.coordinator.applySortDescriptors(tableView.sortDescriptors)
             tableView.reloadData()
         }
     }
 
-    private func addColumn(_ identifier: String, title: String, width: CGFloat, to tableView: NSTableView) {
-        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(identifier))
-        column.title = title
-        column.width = width
-        column.minWidth = 60
-        tableView.addTableColumn(column)
+    private func addColumn(index: Int, column: InspectorJSONLColumn, to tableView: NSTableView) {
+        let tableColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("\(index)"))
+        tableColumn.title = column.title
+        tableColumn.width = column.width
+        tableColumn.minWidth = column.minWidth
+        if column.sortValue != nil {
+            tableColumn.sortDescriptorPrototype = NSSortDescriptor(key: "\(index)", ascending: true)
+        }
+        tableView.addTableColumn(tableColumn)
     }
 
     final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
-        var store: SVPRelationshipJSONLStore
+        var store: SVPInspectorJSONLStore
+        var columns: [InspectorJSONLColumn]
+        private var sortedRowIndexes: [Int]?
 
-        init(store: SVPRelationshipJSONLStore) {
+        init(store: SVPInspectorJSONLStore, columns: [InspectorJSONLColumn]) {
             self.store = store
+            self.columns = columns
         }
 
         func numberOfRows(in tableView: NSTableView) -> Int {
@@ -611,26 +578,18 @@ private struct RelationshipsTableView: NSViewRepresentable {
             let identifier = tableColumn?.identifier ?? NSUserInterfaceItemIdentifier("cell")
             let textField = tableView.makeView(withIdentifier: identifier, owner: self) as? NSTextField
                 ?? makeTextField(identifier: identifier)
-            let relationship = store.row(at: row)
-
-            switch identifier.rawValue {
-            case "source":
-                textField.stringValue = relationship?.sourceID ?? "—"
-            case "type":
-                textField.stringValue = relationship?.type ?? "—"
-            case "target":
-                textField.stringValue = relationship?.targetID ?? "—"
-            case "start":
-                textField.stringValue = relationship?.startText ?? "—"
-            case "end":
-                textField.stringValue = relationship?.endText ?? "—"
-            case "confidence":
-                textField.stringValue = relationship?.confidence ?? "—"
-            default:
+            guard let columnIndex = Int(identifier.rawValue), columns.indices.contains(columnIndex) else {
                 textField.stringValue = "—"
+                return textField
             }
 
+            textField.stringValue = columns[columnIndex].text(store, sourceRow(for: row))
             return textField
+        }
+
+        func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
+            applySortDescriptors(tableView.sortDescriptors)
+            tableView.reloadData()
         }
 
         private func makeTextField(identifier: NSUserInterfaceItemIdentifier) -> NSTextField {
@@ -642,6 +601,32 @@ private struct RelationshipsTableView: NSViewRepresentable {
             textField.isSelectable = true
             return textField
         }
+
+        private func sourceRow(for visibleRow: Int) -> Int {
+            sortedRowIndexes?[visibleRow] ?? visibleRow
+        }
+
+        func applySortDescriptors(_ descriptors: [NSSortDescriptor]) {
+            guard let descriptor = descriptors.first,
+                  let key = descriptor.key,
+                  let columnIndex = Int(key),
+                  columns.indices.contains(columnIndex),
+                  let sortValue = columns[columnIndex].sortValue else {
+                sortedRowIndexes = nil
+                return
+            }
+
+            let ascending = descriptor.ascending
+            sortedRowIndexes = (0..<store.rowCount)
+                .map { (index: $0, value: sortValue(store, $0)) }
+                .sorted { lhs, rhs in
+                    if lhs.value == rhs.value {
+                        return lhs.index < rhs.index
+                    }
+                    return ascending ? lhs.value < rhs.value : rhs.value < lhs.value
+                }
+                .map(\.index)
+        }
     }
 }
 
@@ -649,7 +634,6 @@ private struct RelationshipsTableView: NSViewRepresentable {
 
 struct ProvenanceDetailView: View {
     @ObservedObject var viewModel: SVPInspectorViewModel
-    @State private var procSortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         switch viewModel.provenanceState {
@@ -700,24 +684,14 @@ struct ProvenanceDetailView: View {
                     }
                 }
 
-                if !data.processors.isEmpty {
-                    section("Processors (\(data.processors.count))") {
-                        let procRows = sortedRows(makeRows(data.processors), sortOrder: procSortOrder)
-                        Table(procRows, sortOrder: $procSortOrder) {
-                            TableColumn("ID", value: \InspectorRow.id_string) { row in
-                                Text(displayString(row.dict, "id"))
-                            }
-                            .width(min: 80, ideal: 180)
-                            TableColumn("Name", value: \InspectorRow.name) { row in
-                                Text(displayString(row.dict, "name"))
-                            }
-                            .width(min: 60, ideal: 150)
-                            TableColumn("Version", value: \InspectorRow.version) { row in
-                                Text(displayString(row.dict, "version"))
-                            }
-                            .width(min: 50, ideal: 80)
-                        }
-                        .frame(height: CGFloat(max(100, data.processors.count * 25)))
+                if data.processors.rowCount > 0 {
+                    section("Processors (\(data.processors.rowCount))") {
+                        InspectorJSONLTableView(store: data.processors, columns: [
+                            .text("ID", key: "id", width: 180),
+                            .text("Name", key: "name", width: 150),
+                            .text("Version", key: "version", width: 80)
+                        ])
+                        .frame(height: CGFloat(max(100, data.processors.rowCount * 25)))
                     }
                 }
 
@@ -732,7 +706,7 @@ struct ProvenanceDetailView: View {
                     }
                 }
 
-                if data.validationReport == nil && data.build == nil && data.processors.isEmpty {
+                if data.validationReport == nil && data.build == nil && data.processors.rowCount == 0 {
                     EmptyStateView(message: "No provenance or validation data found.")
                 }
             }

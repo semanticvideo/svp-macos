@@ -18,16 +18,16 @@ struct SVPInspectorOverviewData {
 }
 
 struct SVPInspectorTranscriptData {
-    let words: [[String: Any]]
+    let words: SVPInspectorJSONLStore
     let summary: [String: Any]?
-    let speakers: [[String: Any]]
-    let speakerSegments: [[String: Any]]
+    let speakers: SVPInspectorJSONLStore
+    let speakerSegments: SVPInspectorJSONLStore
 }
 
 struct SVPInspectorTextData {
-    let regions: [[String: Any]]
-    let observations: [[String: Any]]
-    let numericValues: [[String: Any]]
+    let regions: SVPInspectorJSONLStore
+    let observations: SVPInspectorJSONLStore
+    let numericValues: SVPInspectorJSONLStore
     let absence: [String: Any]?
 }
 
@@ -37,29 +37,29 @@ struct SVPInspectorEvidenceCropsData {
 }
 
 struct SVPInspectorColorsData {
-    let observations: [[String: Any]]
+    let observations: SVPInspectorJSONLStore
     let summary: [String: Any]?
     let absence: [String: Any]?
 }
 
 struct SVPInspectorTimelineData {
-    let shots: [[String: Any]]
-    let scenes: [[String: Any]]
-    let frames: [[String: Any]]
+    let shots: SVPInspectorJSONLStore
+    let scenes: SVPInspectorJSONLStore
+    let frames: SVPInspectorJSONLStore
 }
 
 struct SVPInspectorEntitiesData {
-    let entities: [[String: Any]]
-    let entityTracks: [[String: Any]]
+    let entities: SVPInspectorJSONLStore
+    let entityTracks: SVPInspectorJSONLStore
 }
 
 struct SVPInspectorRelationshipsData {
-    let store: SVPRelationshipJSONLStore
+    let store: SVPInspectorJSONLStore
 }
 
 struct SVPInspectorProvenanceData {
     let build: [String: Any]?
-    let processors: [[String: Any]]
+    let processors: SVPInspectorJSONLStore
     let validationReport: [String: Any]?
 }
 
@@ -93,10 +93,10 @@ enum SVPInspectorDataLoader {
         try timed("transcript section") {
             let reader = try validatedReader(for: url)
             return SVPInspectorTranscriptData(
-                words: readJSONL("transcript/words.jsonl", from: reader),
+                words: try readJSONLStore("transcript/words.jsonl", from: reader),
                 summary: readJSON("transcript/transcript.json", from: reader),
-                speakers: readJSONL("transcript/speakers.jsonl", from: reader),
-                speakerSegments: readJSONL("transcript/speaker_segments.jsonl", from: reader)
+                speakers: try readJSONLStore("transcript/speakers.jsonl", from: reader),
+                speakerSegments: try readJSONLStore("transcript/speaker_segments.jsonl", from: reader)
             )
         }
     }
@@ -105,9 +105,9 @@ enum SVPInspectorDataLoader {
         try timed("text section") {
             let reader = try validatedReader(for: url)
             return SVPInspectorTextData(
-                regions: readJSONL("text/text_regions.jsonl", from: reader),
-                observations: readJSONL("text/text_observations.jsonl", from: reader),
-                numericValues: readJSONL("text/numeric_values.jsonl", from: reader),
+                regions: try readJSONLStore("text/text_regions.jsonl", from: reader),
+                observations: try readJSONLStore("text/text_observations.jsonl", from: reader),
+                numericValues: try readJSONLStore("text/numeric_values.jsonl", from: reader),
                 absence: readJSON("text/text_absence.json", from: reader)
             )
         }
@@ -135,7 +135,7 @@ enum SVPInspectorDataLoader {
         try timed("colors section") {
             let reader = try validatedReader(for: url)
             return SVPInspectorColorsData(
-                observations: readJSONL("colors/color_observations.jsonl", from: reader),
+                observations: try readJSONLStore("colors/color_observations.jsonl", from: reader),
                 summary: readJSON("colors/color_summary.json", from: reader),
                 absence: readJSON("colors/color_absence.json", from: reader)
             )
@@ -146,9 +146,9 @@ enum SVPInspectorDataLoader {
         try timed("timeline section") {
             let reader = try validatedReader(for: url)
             return SVPInspectorTimelineData(
-                shots: readJSONL("timeline/shots.jsonl", from: reader),
-                scenes: readJSONL("timeline/scenes.jsonl", from: reader),
-                frames: readJSONL("timeline/frames.jsonl", from: reader)
+                shots: try readJSONLStore("timeline/shots.jsonl", from: reader),
+                scenes: try readJSONLStore("timeline/scenes.jsonl", from: reader),
+                frames: try readJSONLStore("timeline/frames.jsonl", from: reader)
             )
         }
     }
@@ -157,16 +157,17 @@ enum SVPInspectorDataLoader {
         try timed("entities section") {
             let reader = try validatedReader(for: url)
             return SVPInspectorEntitiesData(
-                entities: readJSONL("entities/entities.jsonl", from: reader),
-                entityTracks: readJSONL("entities/entity_tracks.jsonl", from: reader)
+                entities: try readJSONLStore("entities/entities.jsonl", from: reader),
+                entityTracks: try readJSONLStore("entities/entity_tracks.jsonl", from: reader)
             )
         }
     }
 
     nonisolated static func loadRelationships(from url: URL) throws -> SVPInspectorRelationshipsData {
         try timed("relationships section") {
+            let reader = try validatedReader(for: url)
             return SVPInspectorRelationshipsData(
-                store: try SVPRelationshipJSONLStore(packageURL: url)
+                store: try readJSONLStore("relationships/relationships.jsonl", from: reader)
             )
         }
     }
@@ -176,7 +177,7 @@ enum SVPInspectorDataLoader {
             let reader = try validatedReader(for: url)
             return SVPInspectorProvenanceData(
                 build: readJSON("provenance/build.json", from: reader),
-                processors: readJSONL("provenance/processors.jsonl", from: reader),
+                processors: try readJSONLStore("provenance/processors.jsonl", from: reader),
                 validationReport: readJSON("provenance/validation.json", from: reader)
             )
         }
@@ -202,6 +203,10 @@ enum SVPInspectorDataLoader {
     private nonisolated static func readJSONL(_ entryName: String, from reader: SVPReader) -> [[String: Any]] {
         guard reader.hasEntry(entryName) else { return [] }
         return (try? reader.readJSONLEntry(entryName)) ?? []
+    }
+
+    private nonisolated static func readJSONLStore(_ entryName: String, from reader: SVPReader) throws -> SVPInspectorJSONLStore {
+        try SVPInspectorJSONLStore(reader: reader, entryName: entryName)
     }
 
     private nonisolated static func readJSON(_ entryName: String, from reader: SVPReader) -> [String: Any]? {

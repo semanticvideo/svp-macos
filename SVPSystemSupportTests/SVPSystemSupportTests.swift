@@ -129,26 +129,29 @@ final class SVPSystemSupportTests: XCTestCase {
 
     func testRelationshipStoreReadsRowsByOffset() throws {
         let fixtureURL = repositoryRoot.appendingPathComponent("SVPSystemSupportTests/Resources/SVP-TEST.svp")
-        let store = try SVPRelationshipJSONLStore(packageURL: fixtureURL)
+        let store = try SVPInspectorJSONLStore(
+            packageURL: fixtureURL,
+            entryName: "relationships/relationships.jsonl"
+        )
 
         XCTAssertEqual(store.rowCount, 47)
         XCTAssertEqual(store.uncompressedSize, 12_875)
 
         let firstRow = try XCTUnwrap(store.row(at: 0))
-        XCTAssertEqual(firstRow.sourceID, "embed_text_obs_000001")
-        XCTAssertEqual(firstRow.type, "embedding_source_is")
-        XCTAssertEqual(firstRow.targetID, "text_region_000001")
-        XCTAssertEqual(firstRow.startText, "0.000")
-        XCTAssertEqual(firstRow.endText, "0.000")
-        XCTAssertEqual(firstRow.confidence, "1")
+        XCTAssertEqual(firstRow["source_id"] as? String, "embed_text_obs_000001")
+        XCTAssertEqual(firstRow["type"] as? String, "embedding_source_is")
+        XCTAssertEqual(firstRow["target_id"] as? String, "text_region_000001")
+        XCTAssertEqual(store.microsecondsText(at: 0, key: "start_us"), "0.000")
+        XCTAssertEqual(store.microsecondsText(at: 0, key: "end_us"), "0.000")
+        XCTAssertEqual(store.text(at: 0, key: "confidence"), "1")
 
         let lastRow = try XCTUnwrap(store.row(at: store.rowCount - 1))
-        XCTAssertEqual(lastRow.sourceID, "word_000005")
-        XCTAssertEqual(lastRow.type, "word_spoken_by")
-        XCTAssertEqual(lastRow.targetID, "speaker_0002")
-        XCTAssertEqual(lastRow.startText, "3.725")
-        XCTAssertEqual(lastRow.endText, "4.450")
-        XCTAssertEqual(lastRow.confidence, "0")
+        XCTAssertEqual(lastRow["source_id"] as? String, "word_000005")
+        XCTAssertEqual(lastRow["type"] as? String, "word_spoken_by")
+        XCTAssertEqual(lastRow["target_id"] as? String, "speaker_0002")
+        XCTAssertEqual(store.microsecondsText(at: store.rowCount - 1, key: "start_us"), "3.725")
+        XCTAssertEqual(store.microsecondsText(at: store.rowCount - 1, key: "end_us"), "4.450")
+        XCTAssertEqual(store.text(at: store.rowCount - 1, key: "confidence"), "0")
 
         XCTAssertNil(store.row(at: store.rowCount))
     }
@@ -157,16 +160,19 @@ final class SVPSystemSupportTests: XCTestCase {
         let fixtureURL = try makeMinimalSVPPackage()
         defer { try? FileManager.default.removeItem(at: fixtureURL) }
 
-        let beforeTempDirs = relationshipTempDirectories()
+        let beforeTempDirs = inspectorJSONLTempDirectories()
 
         do {
-            let store = try SVPRelationshipJSONLStore(packageURL: fixtureURL)
+            let store = try SVPInspectorJSONLStore(
+                packageURL: fixtureURL,
+                entryName: "relationships/relationships.jsonl"
+            )
             XCTAssertEqual(store.rowCount, 0)
             XCTAssertNil(store.uncompressedSize)
             XCTAssertNil(store.row(at: 0))
         }
 
-        XCTAssertEqual(relationshipTempDirectories(), beforeTempDirs)
+        XCTAssertEqual(inspectorJSONLTempDirectories(), beforeTempDirs)
     }
 
     private func readSource(_ relativePath: String) throws -> String {
@@ -215,11 +221,11 @@ final class SVPSystemSupportTests: XCTestCase {
         return packageURL
     }
 
-    private func relationshipTempDirectories() -> Set<String> {
+    private func inspectorJSONLTempDirectories() -> Set<String> {
         let tempURL = FileManager.default.temporaryDirectory
         let names = (try? FileManager.default.contentsOfDirectory(
             atPath: tempURL.path
         )) ?? []
-        return Set(names.filter { $0.hasPrefix("svp-relationships-") })
+        return Set(names.filter { $0.hasPrefix("svp-inspector-jsonl-") })
     }
 }
