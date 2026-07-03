@@ -82,7 +82,7 @@ struct SVPInspectorSidebarView: View {
 // MARK: - Split View Controller
 
 final class SVPInspectorSplitViewController: NSSplitViewController {
-    private let data: SVPInspectorData
+    private var data: SVPInspectorData?
     private var selectedSection = SVPInspectorSection.overview {
         didSet {
             updateDetail()
@@ -90,6 +90,7 @@ final class SVPInspectorSplitViewController: NSSplitViewController {
     }
     private var sidebarHostingController: NSHostingController<SVPInspectorSidebarView>?
     private var detailHostingController: NSHostingController<AnyView>?
+    private var isTornDown = false
 
     init(data: SVPInspectorData) {
         self.data = data
@@ -111,6 +112,8 @@ final class SVPInspectorSplitViewController: NSSplitViewController {
     }
 
     private func configureSplitView() {
+        guard let data else { return }
+
         splitView.dividerStyle = .thin
 
         let sidebarHostingController = NSHostingController(
@@ -135,10 +138,28 @@ final class SVPInspectorSplitViewController: NSSplitViewController {
     }
 
     private func updateDetail() {
+        guard let data, !isTornDown else { return }
+
         detailHostingController?.rootView = Self.detailView(
             for: selectedSection,
             data: data
         )
+    }
+
+    func tearDownForClose() {
+        guard !isTornDown else { return }
+        isTornDown = true
+
+        sidebarHostingController?.rootView = SVPInspectorSidebarView(selectedSection: .constant(.overview))
+        detailHostingController?.rootView = AnyView(EmptyView())
+        data = nil
+
+        while !splitViewItems.isEmpty {
+            removeSplitViewItem(splitViewItems[0])
+        }
+
+        sidebarHostingController = nil
+        detailHostingController = nil
     }
 
     private static func detailView(

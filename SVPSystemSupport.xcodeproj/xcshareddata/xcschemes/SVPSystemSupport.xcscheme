@@ -41,17 +41,6 @@
                ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
             </BuildableReference>
          </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "8E5F80642FE8B2BD008F9F09"
-               BuildableName = "SVPSystemSupportUITests.xctest"
-               BlueprintName = "SVPSystemSupportUITests"
-               ReferencedContainer = "container:SVPSystemSupport.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

@@ -2,6 +2,8 @@ import AppKit
 
 final class SVPTranscriptWindowPresenter: NSObject, NSWindowDelegate {
     private var windows: [NSWindow] = []
+    var onClose: (() -> Void)?
+    var windowCount: Int { windows.count }
 
     func present(title: String, text: String) {
         let window = NSWindow(
@@ -95,5 +97,8 @@ final class SVPTranscriptWindowPresenter: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard let window = notification.object as? NSWindow else { return }
         windows.removeAll { $0 === window }
+        window.delegate = nil
+        window.contentView?.subviews.forEach { $0.removeFromSuperview() }
+        onClose?()
     }
 }

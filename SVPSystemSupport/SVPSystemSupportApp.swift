@@ -1,10 +1,18 @@
 import AppKit
+import Darwin
 
 final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
     private let videoExtractor = SVPVideoExtractor()
     private let transcriptLoader = SVPTranscriptLoader()
     private let transcriptPresenter = SVPTranscriptWindowPresenter()
     private var inspectorWindowControllers: [SVPInspectorWindowController] = []
+
+    override init() {
+        super.init()
+        transcriptPresenter.onClose = { [weak self] in
+            self?.handleSupportWindowClosed(reason: "transcript")
+        }
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         SVPAppLogger.log("App did finish launching")
@@ -113,9 +121,43 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
         windowController.onClose = { [weak self, weak windowController] in
             guard let windowController else { return }
             self?.inspectorWindowControllers.removeAll { $0 === windowController }
+            self?.handleSupportWindowClosed(reason: "inspector")
         }
         inspectorWindowControllers.append(windowController)
         windowController.present()
+    }
+
+    private func handleSupportWindowClosed(reason: String) {
+        DispatchQueue.main.async { [weak self] in
+            self?.terminateIfNoSupportWindowsRemain(reason: reason)
+        }
+    }
+
+    private func terminateIfNoSupportWindowsRemain(reason: String) {
+        let inspectorCount = inspectorWindowControllers.count
+        let transcriptCount = transcriptPresenter.windowCount
+
+        guard inspectorCount == 0, transcriptCount == 0 else { return }
+        guard !isRunningUnderDebugger else {
+            SVPAppLogger.log("No inspector or transcript windows remain; debugger attached, skipping app termination")
+            return
+        }
+
+        SVPAppLogger.log("No inspector or transcript windows remain; terminating app")
+        NSApp.terminate(nil)
+    }
+
+    private var isRunningUnderDebugger: Bool {
+        var info = kinfo_proc()
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        var size = MemoryLayout<kinfo_proc>.stride
+
+        let result = mib.withUnsafeMutableBufferPointer { mibPointer in
+            sysctl(mibPointer.baseAddress, u_int(mibPointer.count), &info, &size, nil, 0)
+        }
+
+        guard result == 0 else { return false }
+        return (info.kp_proc.p_flag & P_TRACED) != 0
     }
 
     @objc(showTranscriptServiceSVPI:userData:error:)
