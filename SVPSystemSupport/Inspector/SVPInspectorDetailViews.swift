@@ -306,9 +306,7 @@ struct ColorsDetailView: View {
                     .text("Target ID", key: "target_id", width: 140),
                     .microseconds("Start (s)", key: "start_us", width: 80),
                     .text("Dominant", key: "dominant_bucket", width: 100),
-                    .custom("Breakdown", width: 160) { row in
-                        formatColorBuckets(row["bucket_coverage"] as? [String: Any])
-                    },
+                    .colorBuckets("Breakdown", key: "bucket_coverage", width: 160),
                     .text("Coverage", key: "coverage_total", width: 80),
                     .text("Quality", key: "quality_score", width: 70)
                 ])
@@ -469,6 +467,7 @@ private struct InspectorJSONLColumn {
     let width: CGFloat
     let minWidth: CGFloat
     let text: (SVPInspectorJSONLStore, Int) -> String
+    let cellView: ((SVPInspectorJSONLStore, Int) -> NSView?)?
     let sortValue: ((SVPInspectorJSONLStore, Int) -> SVPInspectorJSONLSortValue)?
 
     static func text(_ title: String, key: String, width: CGFloat, minWidth: CGFloat = 60) -> InspectorJSONLColumn {
@@ -477,6 +476,7 @@ private struct InspectorJSONLColumn {
             width: width,
             minWidth: minWidth,
             text: { store, row in store.text(at: row, key: key) },
+            cellView: nil,
             sortValue: { store, row in store.sortValue(at: row, key: key) }
         )
     }
@@ -487,7 +487,38 @@ private struct InspectorJSONLColumn {
             width: width,
             minWidth: minWidth,
             text: { store, row in store.microsecondsText(at: row, key: key) },
+            cellView: nil,
             sortValue: { store, row in store.sortValue(at: row, key: key) }
+        )
+    }
+
+    static func colorBuckets(_ title: String, key: String, width: CGFloat, minWidth: CGFloat = 124) -> InspectorJSONLColumn {
+        InspectorJSONLColumn(
+            title: title,
+            width: width,
+            minWidth: minWidth,
+            text: { store, row in
+                guard let dict = store.row(at: row) else { return "—" }
+                return formatColorBuckets(dict[key] as? [String: Any])
+            },
+            cellView: { store, row in
+                guard let dict = store.row(at: row),
+                      let bucketCoverage = dict[key] as? [String: Any] else {
+                    let textField = InspectorCenteredTextField(labelWithString: "—")
+                    textField.lineBreakMode = .byTruncatingMiddle
+                    textField.maximumNumberOfLines = 1
+                    textField.cell?.truncatesLastVisibleLine = true
+                    textField.isSelectable = true
+                    return textField
+                }
+                let hostingView = NSHostingView(
+                    rootView: ColorBucketDots(bucketCoverage: bucketCoverage)
+                        .frame(height: InspectorJSONLTableView.colorBucketRowHeight)
+                )
+                hostingView.translatesAutoresizingMaskIntoConstraints = false
+                return hostingView
+            },
+            sortValue: nil
         )
     }
 
@@ -505,12 +536,15 @@ private struct InspectorJSONLColumn {
                 guard let dict = store.row(at: row) else { return "—" }
                 return text(dict)
             },
+            cellView: nil,
             sortValue: nil
         )
     }
 }
 
 private struct InspectorJSONLTableView: NSViewRepresentable {
+    static let colorBucketRowHeight: CGFloat = 34
+
     let store: SVPInspectorJSONLStore
     let columns: [InspectorJSONLColumn]
 
@@ -534,6 +568,9 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
         tableView.allowsColumnReordering = true
         tableView.allowsColumnResizing = true
         tableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        context.coordinator.defaultRowHeight = tableView.rowHeight
+        context.coordinator.defaultIntercellSpacing = tableView.intercellSpacing
+        applyRowMetrics(to: tableView, coordinator: context.coordinator)
         tableView.delegate = context.coordinator
         tableView.dataSource = context.coordinator
 
@@ -566,9 +603,21 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
         context.coordinator.store = store
         context.coordinator.columns = columns
         if let tableView = Self.tableView(in: containerView) {
+            applyRowMetrics(to: tableView, coordinator: context.coordinator)
             context.coordinator.applySortDescriptors(tableView.sortDescriptors, tableView: tableView)
             tableView.reloadData()
         }
+    }
+
+    private func applyRowMetrics(to tableView: NSTableView, coordinator: Coordinator) {
+        guard columns.contains(where: { $0.cellView != nil }) else {
+            tableView.rowHeight = coordinator.defaultRowHeight
+            tableView.intercellSpacing = coordinator.defaultIntercellSpacing
+            return
+        }
+
+        tableView.rowHeight = Self.colorBucketRowHeight
+        tableView.intercellSpacing = NSSize(width: 3, height: 4)
     }
 
     private func addColumn(index: Int, column: InspectorJSONLColumn, to tableView: NSTableView) {
@@ -643,6 +692,8 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
 
         var store: SVPInspectorJSONLStore
         var columns: [InspectorJSONLColumn]
+        var defaultRowHeight: CGFloat = 17
+        var defaultIntercellSpacing = NSSize(width: 3, height: 2)
         private var sortedRowIndexes: [Int]?
         private var sortGeneration = 0
         private var activeSortSignature: SortSignature?
@@ -666,7 +717,12 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
                 return textField
             }
 
-            textField.stringValue = columns[columnIndex].text(store, sourceRow(for: row))
+            let sourceRow = sourceRow(for: row)
+            if let cellView = columns[columnIndex].cellView?(store, sourceRow) {
+                return cellView
+            }
+
+            textField.stringValue = columns[columnIndex].text(store, sourceRow)
             return textField
         }
 
@@ -676,7 +732,7 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
         }
 
         private func makeTextField(identifier: NSUserInterfaceItemIdentifier) -> NSTextField {
-            let textField = NSTextField(labelWithString: "")
+            let textField = InspectorCenteredTextField(labelWithString: "")
             textField.identifier = identifier
             textField.lineBreakMode = .byTruncatingMiddle
             textField.maximumNumberOfLines = 1
@@ -762,6 +818,21 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
                 progressIndicator?.stopAnimation(nil)
             }
         }
+    }
+}
+
+private final class InspectorCenteredTextField: NSTextField {
+    override func draw(_ dirtyRect: NSRect) {
+        guard let cell else {
+            super.draw(dirtyRect)
+            return
+        }
+
+        let cellHeight = cell.cellSize(forBounds: bounds).height
+        var centeredBounds = bounds
+        centeredBounds.origin.y += max(0, (bounds.height - cellHeight) / 2)
+        centeredBounds.size.height = min(bounds.height, cellHeight)
+        cell.draw(withFrame: centeredBounds, in: self)
     }
 }
 
