@@ -237,6 +237,14 @@ public final class SVPReader: @unchecked Sendable {
         try zipReader.readEntry(name)
     }
 
+    public func extractEntry(_ name: String, to destinationURL: URL) throws {
+        try zipReader.extractEntry(name, to: destinationURL)
+    }
+
+    public func entryUncompressedSize(_ name: String) -> UInt64? {
+        zipReader.entryInfo(name)?.uncompressedSize
+    }
+
     public func readJSONEntry(_ name: String) throws -> [String: Any] {
         let data = try zipReader.readEntry(name)
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {

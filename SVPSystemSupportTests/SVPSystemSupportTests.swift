@@ -127,6 +127,32 @@ final class SVPSystemSupportTests: XCTestCase {
         XCTAssertFalse(infoPlist.contains("QLIsDataBasedPreview"))
     }
 
+    func testRelationshipStoreReadsRowsByOffset() throws {
+        let fixtureURL = repositoryRoot.appendingPathComponent("SVPSystemSupportTests/Resources/SVP-TEST.svp")
+        let store = try SVPRelationshipJSONLStore(packageURL: fixtureURL)
+
+        XCTAssertEqual(store.rowCount, 47)
+        XCTAssertEqual(store.uncompressedSize, 12_875)
+
+        let firstRow = try XCTUnwrap(store.row(at: 0))
+        XCTAssertEqual(firstRow.sourceID, "embed_text_obs_000001")
+        XCTAssertEqual(firstRow.type, "embedding_source_is")
+        XCTAssertEqual(firstRow.targetID, "text_region_000001")
+        XCTAssertEqual(firstRow.startText, "0.000")
+        XCTAssertEqual(firstRow.endText, "0.000")
+        XCTAssertEqual(firstRow.confidence, "1")
+
+        let lastRow = try XCTUnwrap(store.row(at: store.rowCount - 1))
+        XCTAssertEqual(lastRow.sourceID, "word_000005")
+        XCTAssertEqual(lastRow.type, "word_spoken_by")
+        XCTAssertEqual(lastRow.targetID, "speaker_0002")
+        XCTAssertEqual(lastRow.startText, "3.725")
+        XCTAssertEqual(lastRow.endText, "4.450")
+        XCTAssertEqual(lastRow.confidence, "0")
+
+        XCTAssertNil(store.row(at: store.rowCount))
+    }
+
     private func readSource(_ relativePath: String) throws -> String {
         let url = repositoryRoot.appendingPathComponent(relativePath)
         return try String(contentsOf: url, encoding: .utf8)

@@ -54,7 +54,7 @@ struct SVPInspectorEntitiesData {
 }
 
 struct SVPInspectorRelationshipsData {
-    let relationships: [[String: Any]]
+    let store: SVPRelationshipJSONLStore
 }
 
 struct SVPInspectorProvenanceData {
@@ -165,9 +165,8 @@ enum SVPInspectorDataLoader {
 
     nonisolated static func loadRelationships(from url: URL) throws -> SVPInspectorRelationshipsData {
         try timed("relationships section") {
-            let reader = try validatedReader(for: url)
             return SVPInspectorRelationshipsData(
-                relationships: readJSONL("relationships/relationships.jsonl", from: reader)
+                store: try SVPRelationshipJSONLStore(packageURL: url)
             )
         }
     }

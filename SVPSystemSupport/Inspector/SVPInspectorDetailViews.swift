@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import SVPReader
 
@@ -512,7 +513,6 @@ struct EntitiesDetailView: View {
 
 struct RelationshipsDetailView: View {
     @ObservedObject var viewModel: SVPInspectorViewModel
-    @State private var sortOrder: [KeyPathComparator<InspectorRow>] = []
 
     var body: some View {
         switch viewModel.relationshipsState {
@@ -530,47 +530,117 @@ struct RelationshipsDetailView: View {
 
     @ViewBuilder
     private func relationshipsContent(_ data: SVPInspectorRelationshipsData) -> some View {
-        if data.relationships.isEmpty {
+        if data.store.rowCount == 0 {
             EmptyStateView(message: "No relationships found in this package.")
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 16) {
-                    Label("\(data.relationships.count) relationships", systemImage: "point.3.connected.trianglepath.dotted")
+                    Label("\(data.store.rowCount) relationships", systemImage: "point.3.connected.trianglepath.dotted")
+                    if let size = data.store.uncompressedSize {
+                        Label(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file), systemImage: "doc.text")
+                    }
                 }
                 .font(.caption)
                 .padding(.horizontal, 4)
 
-                let rows = sortedRows(makeRows(data.relationships), sortOrder: sortOrder)
-                Table(rows, sortOrder: $sortOrder) {
-                    TableColumn("Source", value: \InspectorRow.source_id) { row in
-                        Text(displayString(row.dict, "source_id"))
-                            .textSelection(.enabled)
-                    }
-                    .width(min: 80, ideal: 160)
-                    TableColumn("Type", value: \InspectorRow.type) { row in
-                        Text(displayString(row.dict, "type"))
-                            .textSelection(.enabled)
-                    }
-                    .width(min: 100, ideal: 180)
-                    TableColumn("Target", value: \InspectorRow.target_id) { row in
-                        Text(displayString(row.dict, "target_id"))
-                            .textSelection(.enabled)
-                    }
-                    .width(min: 80, ideal: 160)
-                    TableColumn("Start (s)", value: \InspectorRow.start_us) { row in
-                        Text(formatMicroseconds(row.dict, "start_us"))
-                    }
-                    .width(min: 60, ideal: 80)
-                    TableColumn("End (s)", value: \InspectorRow.end_us) { row in
-                        Text(formatMicroseconds(row.dict, "end_us"))
-                    }
-                    .width(min: 60, ideal: 80)
-                    TableColumn("Confidence", value: \InspectorRow.confidence) { row in
-                        Text(displayString(row.dict, "confidence"))
-                    }
-                    .width(min: 60, ideal: 80)
-                }
+                RelationshipsTableView(store: data.store)
             }
+        }
+    }
+}
+
+private struct RelationshipsTableView: NSViewRepresentable {
+    let store: SVPRelationshipJSONLStore
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(store: store)
+    }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = true
+        scrollView.borderType = .noBorder
+
+        let tableView = NSTableView()
+        tableView.usesAlternatingRowBackgroundColors = true
+        tableView.allowsColumnReordering = true
+        tableView.allowsColumnResizing = true
+        tableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        tableView.delegate = context.coordinator
+        tableView.dataSource = context.coordinator
+
+        addColumn("source", title: "Source", width: 170, to: tableView)
+        addColumn("type", title: "Type", width: 190, to: tableView)
+        addColumn("target", title: "Target", width: 170, to: tableView)
+        addColumn("start", title: "Start (s)", width: 80, to: tableView)
+        addColumn("end", title: "End (s)", width: 80, to: tableView)
+        addColumn("confidence", title: "Confidence", width: 90, to: tableView)
+
+        scrollView.documentView = tableView
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        context.coordinator.store = store
+        if let tableView = scrollView.documentView as? NSTableView {
+            tableView.reloadData()
+        }
+    }
+
+    private func addColumn(_ identifier: String, title: String, width: CGFloat, to tableView: NSTableView) {
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(identifier))
+        column.title = title
+        column.width = width
+        column.minWidth = 60
+        tableView.addTableColumn(column)
+    }
+
+    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+        var store: SVPRelationshipJSONLStore
+
+        init(store: SVPRelationshipJSONLStore) {
+            self.store = store
+        }
+
+        func numberOfRows(in tableView: NSTableView) -> Int {
+            store.rowCount
+        }
+
+        func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+            let identifier = tableColumn?.identifier ?? NSUserInterfaceItemIdentifier("cell")
+            let textField = tableView.makeView(withIdentifier: identifier, owner: self) as? NSTextField
+                ?? makeTextField(identifier: identifier)
+            let relationship = store.row(at: row)
+
+            switch identifier.rawValue {
+            case "source":
+                textField.stringValue = relationship?.sourceID ?? "—"
+            case "type":
+                textField.stringValue = relationship?.type ?? "—"
+            case "target":
+                textField.stringValue = relationship?.targetID ?? "—"
+            case "start":
+                textField.stringValue = relationship?.startText ?? "—"
+            case "end":
+                textField.stringValue = relationship?.endText ?? "—"
+            case "confidence":
+                textField.stringValue = relationship?.confidence ?? "—"
+            default:
+                textField.stringValue = "—"
+            }
+
+            return textField
+        }
+
+        private func makeTextField(identifier: NSUserInterfaceItemIdentifier) -> NSTextField {
+            let textField = NSTextField(labelWithString: "")
+            textField.identifier = identifier
+            textField.lineBreakMode = .byTruncatingMiddle
+            textField.maximumNumberOfLines = 1
+            textField.cell?.truncatesLastVisibleLine = true
+            textField.isSelectable = true
+            return textField
         }
     }
 }
