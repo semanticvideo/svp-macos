@@ -53,7 +53,6 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
             return
         }
 
-        NSApp.activate(ignoringOtherApps: true)
         supportWindowCoordinator.showTranscript(from: svpURL)
     }
 
@@ -67,7 +66,6 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
             return
         }
 
-        NSApp.activate(ignoringOtherApps: true)
         supportWindowCoordinator.showInspector(for: svpURL)
     }
 
@@ -81,7 +79,6 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
             return
         }
 
-        NSApp.activate(ignoringOtherApps: true)
         supportWindowCoordinator.showTranscript(from: svpiURL)
     }
 
@@ -95,7 +92,6 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
             return
         }
 
-        NSApp.activate(ignoringOtherApps: true)
         supportWindowCoordinator.showInspectorSVPI(for: svpiURL)
     }
 }

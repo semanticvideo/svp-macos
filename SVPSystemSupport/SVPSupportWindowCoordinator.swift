@@ -16,6 +16,7 @@ final class SVPSupportWindowCoordinator {
         do {
             let transcript = try transcriptLoader.loadTranscript(from: svpURL)
             let videoTitle = svpURL.deletingPathExtension().lastPathComponent
+            prepareForSupportWindowPresentation(reason: "transcript")
             transcriptPresenter.present(title: "\(videoTitle) Transcript", text: transcript)
         } catch {
             SVPAppLogger.log("App transcript failed: \(error)")
@@ -55,7 +56,20 @@ final class SVPSupportWindowCoordinator {
             self?.handleSupportWindowClosed(reason: "inspector")
         }
         inspectorWindowControllers.append(windowController)
+        prepareForSupportWindowPresentation(reason: "\(formatLabel) inspector")
         windowController.present()
+    }
+
+    private func prepareForSupportWindowPresentation(reason: String) {
+        let currentPolicy = NSApp.activationPolicy()
+        if currentPolicy != .regular {
+            SVPAppLogger.log("Promoting app activation policy for \(reason): \(activationPolicyName(currentPolicy)) -> regular")
+            NSApp.setActivationPolicy(.regular)
+        } else {
+            SVPAppLogger.log("App activation policy already regular for \(reason)")
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func handleSupportWindowClosed(reason: String) {
@@ -69,6 +83,8 @@ final class SVPSupportWindowCoordinator {
         let transcriptCount = transcriptPresenter.windowCount
 
         guard inspectorCount == 0, transcriptCount == 0 else { return }
+        demoteAppAfterSupportWindowsClose(reason: reason)
+
         guard !isRunningUnderDebugger else {
             SVPAppLogger.log("No inspector or transcript windows remain; debugger attached, skipping app termination")
             return
@@ -76,6 +92,30 @@ final class SVPSupportWindowCoordinator {
 
         SVPAppLogger.log("No inspector or transcript windows remain; terminating app")
         NSApp.terminate(nil)
+    }
+
+    private func demoteAppAfterSupportWindowsClose(reason: String) {
+        let currentPolicy = NSApp.activationPolicy()
+        guard currentPolicy == .regular else {
+            SVPAppLogger.log("App activation policy already demoted after \(reason): \(activationPolicyName(currentPolicy))")
+            return
+        }
+
+        SVPAppLogger.log("Demoting app activation policy after \(reason): regular -> accessory")
+        NSApp.setActivationPolicy(.accessory)
+    }
+
+    private func activationPolicyName(_ policy: NSApplication.ActivationPolicy) -> String {
+        switch policy {
+        case .regular:
+            return "regular"
+        case .accessory:
+            return "accessory"
+        case .prohibited:
+            return "prohibited"
+        @unknown default:
+            return "unknown"
+        }
     }
 
     private var isRunningUnderDebugger: Bool {
