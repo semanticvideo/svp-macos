@@ -518,11 +518,16 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
         Coordinator(store: store, columns: columns)
     }
 
-    func makeNSView(context: Context) -> NSScrollView {
+    func makeNSView(context: Context) -> NSView {
+        let containerView = NSView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+
         let scrollView = NSScrollView()
+        scrollView.identifier = NSUserInterfaceItemIdentifier("jsonlTableScrollView")
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = true
         scrollView.borderType = .noBorder
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
 
         let tableView = NSTableView()
         tableView.usesAlternatingRowBackgroundColors = true
@@ -537,14 +542,31 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
         }
 
         scrollView.documentView = tableView
-        return scrollView
+
+        let overlayView = makeSortOverlayView()
+
+        containerView.addSubview(scrollView)
+        containerView.addSubview(overlayView)
+        NSLayoutConstraint.activate([
+            scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+
+            overlayView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            overlayView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            overlayView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            overlayView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ])
+
+        return containerView
     }
 
-    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+    func updateNSView(_ containerView: NSView, context: Context) {
         context.coordinator.store = store
         context.coordinator.columns = columns
-        if let tableView = scrollView.documentView as? NSTableView {
-            context.coordinator.applySortDescriptors(tableView.sortDescriptors)
+        if let tableView = Self.tableView(in: containerView) {
+            context.coordinator.applySortDescriptors(tableView.sortDescriptors, tableView: tableView)
             tableView.reloadData()
         }
     }
@@ -560,10 +582,71 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
         tableView.addTableColumn(tableColumn)
     }
 
+    private func makeSortOverlayView() -> NSView {
+        let overlayView = NSVisualEffectView()
+        overlayView.identifier = NSUserInterfaceItemIdentifier("sortOverlayView")
+        overlayView.blendingMode = .withinWindow
+        overlayView.material = .contentBackground
+        overlayView.state = .active
+        overlayView.wantsLayer = true
+        overlayView.layer?.backgroundColor = NSColor.clear.cgColor
+        overlayView.isHidden = true
+        overlayView.translatesAutoresizingMaskIntoConstraints = false
+
+        let progressIndicator = NSProgressIndicator()
+        progressIndicator.identifier = NSUserInterfaceItemIdentifier("sortProgressIndicator")
+        progressIndicator.style = .spinning
+        progressIndicator.controlSize = .regular
+        progressIndicator.isDisplayedWhenStopped = false
+        progressIndicator.translatesAutoresizingMaskIntoConstraints = false
+
+        let label = NSTextField(labelWithString: "Sorting...")
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        label.alignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let stackView = NSStackView(views: [progressIndicator, label])
+        stackView.identifier = NSUserInterfaceItemIdentifier("sortOverlayStackView")
+        stackView.orientation = .vertical
+        stackView.alignment = .centerX
+        stackView.spacing = 10
+        stackView.edgeInsets = NSEdgeInsets(top: 18, left: 24, bottom: 18, right: 24)
+        stackView.wantsLayer = true
+        stackView.layer?.backgroundColor = NSColor.clear.cgColor
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+
+        overlayView.addSubview(stackView)
+        NSLayoutConstraint.activate([
+            stackView.centerXAnchor.constraint(equalTo: overlayView.centerXAnchor),
+            stackView.centerYAnchor.constraint(equalTo: overlayView.centerYAnchor)
+        ])
+
+        return overlayView
+    }
+
+    private static func tableView(in containerView: NSView) -> NSTableView? {
+        guard let scrollView = containerView.subviews.first(where: {
+            $0.identifier == NSUserInterfaceItemIdentifier("jsonlTableScrollView")
+        }) as? NSScrollView else { return nil }
+
+        return scrollView.documentView as? NSTableView
+    }
+
     final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+        private struct SortSignature: Equatable {
+            let storeID: ObjectIdentifier
+            let columnIndex: Int
+            let ascending: Bool
+            let rowCount: Int
+        }
+
         var store: SVPInspectorJSONLStore
         var columns: [InspectorJSONLColumn]
         private var sortedRowIndexes: [Int]?
+        private var sortGeneration = 0
+        private var activeSortSignature: SortSignature?
+        private let sortQueue = DispatchQueue(label: "com.cueit.svp-system-support.inspector-jsonl-sort", qos: .userInitiated)
 
         init(store: SVPInspectorJSONLStore, columns: [InspectorJSONLColumn]) {
             self.store = store
@@ -588,7 +671,7 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
         }
 
         func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
-            applySortDescriptors(tableView.sortDescriptors)
+            applySortDescriptors(tableView.sortDescriptors, tableView: tableView)
             tableView.reloadData()
         }
 
@@ -603,29 +686,81 @@ private struct InspectorJSONLTableView: NSViewRepresentable {
         }
 
         private func sourceRow(for visibleRow: Int) -> Int {
-            sortedRowIndexes?[visibleRow] ?? visibleRow
+            guard let sortedRowIndexes, sortedRowIndexes.indices.contains(visibleRow) else {
+                return visibleRow
+            }
+            return sortedRowIndexes[visibleRow]
         }
 
-        func applySortDescriptors(_ descriptors: [NSSortDescriptor]) {
+        func applySortDescriptors(_ descriptors: [NSSortDescriptor], tableView: NSTableView?) {
             guard let descriptor = descriptors.first,
                   let key = descriptor.key,
                   let columnIndex = Int(key),
                   columns.indices.contains(columnIndex),
                   let sortValue = columns[columnIndex].sortValue else {
                 sortedRowIndexes = nil
+                activeSortSignature = nil
+                sortGeneration += 1
+                setSortInProgress(false, tableView: tableView)
                 return
             }
 
             let ascending = descriptor.ascending
-            sortedRowIndexes = (0..<store.rowCount)
-                .map { (index: $0, value: sortValue(store, $0)) }
-                .sorted { lhs, rhs in
+            let signature = SortSignature(
+                storeID: ObjectIdentifier(store),
+                columnIndex: columnIndex,
+                ascending: ascending,
+                rowCount: store.rowCount
+            )
+            guard activeSortSignature != signature else { return }
+
+            sortGeneration += 1
+            let generation = sortGeneration
+            activeSortSignature = signature
+            sortedRowIndexes = nil
+            setSortInProgress(true, tableView: tableView)
+
+            let store = store
+            let rowCount = store.rowCount
+            sortQueue.async { [weak self, weak tableView] in
+                let sortedIndexes = (0..<rowCount)
+                    .map { (index: $0, value: sortValue(store, $0)) }
+                    .sorted { lhs, rhs in
                     if lhs.value == rhs.value {
                         return lhs.index < rhs.index
                     }
                     return ascending ? lhs.value < rhs.value : rhs.value < lhs.value
                 }
                 .map(\.index)
+
+                DispatchQueue.main.async {
+                    guard let self, self.sortGeneration == generation else { return }
+                    self.sortedRowIndexes = sortedIndexes
+                    self.setSortInProgress(false, tableView: tableView)
+                    tableView?.reloadData()
+                }
+            }
+        }
+
+        private func setSortInProgress(_ isInProgress: Bool, tableView: NSTableView?) {
+            guard let scrollView = tableView?.enclosingScrollView,
+                  let containerView = scrollView.superview,
+                  let overlayView = containerView.subviews.first(where: {
+                      $0.identifier == NSUserInterfaceItemIdentifier("sortOverlayView")
+                  }) else { return }
+
+            let progressIndicator = overlayView.subviews
+                .compactMap { $0 as? NSStackView }
+                .flatMap(\.views)
+                .first { $0.identifier == NSUserInterfaceItemIdentifier("sortProgressIndicator") } as? NSProgressIndicator
+
+            overlayView.isHidden = !isInProgress
+            if isInProgress {
+                overlayView.alphaValue = 1
+                progressIndicator?.startAnimation(nil)
+            } else {
+                progressIndicator?.stopAnimation(nil)
+            }
         }
     }
 }
