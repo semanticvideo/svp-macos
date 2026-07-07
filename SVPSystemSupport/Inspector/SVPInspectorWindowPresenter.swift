@@ -122,7 +122,6 @@ private final class SVPInspectorToolbarProvider: NSObject, NSToolbarDelegate {
         static let toolbarIdentifier = NSToolbar.Identifier("SVPInspectorToolbar")
         static let sidebarToggleItem = NSToolbarItem.Identifier("SVPInspectorSidebarToggleItem")
         static let fileNameItem = NSToolbarItem.Identifier("SVPInspectorFileNameItem")
-        static let sidebarToggleSize = NSSize(width: 32, height: 28)
     }
 
     init(
@@ -181,26 +180,14 @@ private final class SVPInspectorToolbarProvider: NSObject, NSToolbarDelegate {
     }
 
     private func makeSidebarToggleItem(itemIdentifier: NSToolbarItem.Identifier) -> NSToolbarItem {
-        let button = NSButton(
-            image: NSImage(systemSymbolName: "sidebar.left", accessibilityDescription: "Toggle Sidebar") ?? NSImage(),
-            target: self,
-            action: #selector(sidebarToggleSelected)
-        )
-        button.bezelStyle = .toolbar
-        button.imagePosition = .imageOnly
-        button.setButtonType(.momentaryPushIn)
-        button.translatesAutoresizingMaskIntoConstraints = false
-
-        NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: Metrics.sidebarToggleSize.width),
-            button.heightAnchor.constraint(equalToConstant: Metrics.sidebarToggleSize.height)
-        ])
-
         let item = NSToolbarItem(itemIdentifier: itemIdentifier)
         item.label = "Toggle Sidebar"
         item.paletteLabel = "Toggle Sidebar"
         item.toolTip = "Toggle Sidebar"
-        item.view = button
+        item.image = NSImage(systemSymbolName: "sidebar.left", accessibilityDescription: "Toggle Sidebar")
+        item.target = self
+        item.action = #selector(sidebarToggleSelected)
+        item.isBordered = true
         return item
     }
 
