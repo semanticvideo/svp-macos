@@ -40,8 +40,55 @@ struct ColorsDetailView: View {
                     .colorBuckets("Breakdown", key: "bucket_coverage", width: 160),
                     .text("Coverage", key: "coverage_total", width: 80),
                     .text("Quality", key: "quality_score", width: 70)
-                ])
+                ], defaultRowOrder: colorObservationAppearanceRowIndexes)
             }
         }
+    }
+}
+
+func colorObservationAppearanceRowIndexes(for store: SVPInspectorJSONLStore) -> [Int] {
+    (0..<store.rowCount).sorted { lhs, rhs in
+        let lhsRow = store.row(at: lhs)
+        let rhsRow = store.row(at: rhs)
+
+        let lhsStart = colorObservationMicroseconds(lhsRow, key: "start_us")
+        let rhsStart = colorObservationMicroseconds(rhsRow, key: "start_us")
+        if lhsStart != rhsStart {
+            return lhsStart < rhsStart
+        }
+
+        let lhsRank = colorObservationTargetRank(lhsRow?["target_type"] as? String)
+        let rhsRank = colorObservationTargetRank(rhsRow?["target_type"] as? String)
+        if lhsRank != rhsRank {
+            return lhsRank < rhsRank
+        }
+
+        let lhsEnd = colorObservationMicroseconds(lhsRow, key: "end_us")
+        let rhsEnd = colorObservationMicroseconds(rhsRow, key: "end_us")
+        if lhsEnd != rhsEnd {
+            return lhsEnd < rhsEnd
+        }
+
+        let lhsID = lhsRow?["target_id"] as? String ?? ""
+        let rhsID = rhsRow?["target_id"] as? String ?? ""
+        if lhsID != rhsID {
+            return lhsID < rhsID
+        }
+
+        return lhs < rhs
+    }
+}
+
+private func colorObservationMicroseconds(_ row: [String: Any]?, key: String) -> Int64 {
+    guard let number = row?[key] as? NSNumber else { return Int64.max }
+    return number.int64Value
+}
+
+private func colorObservationTargetRank(_ targetType: String?) -> Int {
+    switch targetType {
+    case "scene": 0
+    case "shot": 1
+    case "frame": 2
+    default: 3
     }
 }
