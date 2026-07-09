@@ -147,6 +147,35 @@ final class SVPReaderTests: XCTestCase {
         XCTAssertEqual(transcript, "hello semantic video")
     }
 
+    func testReadTranscriptTextKeepsSentencePunctuationInFlow() throws {
+        let fixture = try makeSVPFixture(transcriptLines: [
+            #"{"text":"Hello.","start_us":0,"end_us":500000}"#,
+            #"{"text":"This","start_us":600000,"end_us":700000}"#,
+            #"{"text":"continues","start_us":700000,"end_us":800000}"#
+        ])
+        defer { try? FileManager.default.removeItem(at: fixture.tempDir) }
+
+        let transcript = try SVPReader(url: fixture.svpURL).readTranscriptText()
+
+        XCTAssertEqual(transcript, "Hello. This continues")
+    }
+
+    func testReadTranscriptTextBreaksOnSpeakerGapAndChunkChanges() throws {
+        let fixture = try makeSVPFixture(transcriptLines: [
+            #"{"text":"Speaker","start_us":0,"end_us":250000,"speaker_id":"speaker_0001","chunk_ordinal":0}"#,
+            #"{"text":"one","start_us":250000,"end_us":500000,"speaker_id":"speaker_0001","chunk_ordinal":0}"#,
+            #"{"text":"Speaker","start_us":500000,"end_us":750000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
+            #"{"text":"two","start_us":750000,"end_us":1000000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
+            #"{"text":"Later","start_us":3000000,"end_us":3250000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
+            #"{"text":"chunk","start_us":3250000,"end_us":3500000,"speaker_id":"speaker_0002","chunk_ordinal":1}"#
+        ])
+        defer { try? FileManager.default.removeItem(at: fixture.tempDir) }
+
+        let transcript = try SVPReader(url: fixture.svpURL).readTranscriptText()
+
+        XCTAssertEqual(transcript, "Speaker one\n\nSpeaker two\n\nLater\n\nchunk")
+    }
+
     func testReadTranscriptTextRejectsMissingWordsEntry() throws {
         let fixture = try makeSVPFixture()
         defer { try? FileManager.default.removeItem(at: fixture.tempDir) }
