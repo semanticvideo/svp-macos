@@ -7,7 +7,9 @@ struct TranscriptWordRecord {
 }
 
 enum TranscriptFormatter {
-    private static let paragraphSilenceThresholdUS: Int64 = 1_500_000
+    private static let paragraphSilenceThresholdUS: Int64 = 600_000
+    private static let trailingSentenceClosers: Set<Character> = ["\"", "'", "”", "’", ")", "]", "}"]
+    private static let sentenceTerminators: Set<Character> = [".", "?", "!", "…"]
 
     static func format(_ words: [TranscriptWordRecord]) -> String {
         var paragraphs: [String] = []
@@ -40,7 +42,8 @@ enum TranscriptFormatter {
     ) -> Bool {
         guard let previous else { return false }
 
-        if let previousEnd = previous.endUS,
+        if endsSentence(previous.text),
+           let previousEnd = previous.endUS,
            let currentStart = current.startUS {
             let (paragraphStart, overflow) = previousEnd.addingReportingOverflow(paragraphSilenceThresholdUS)
             if !overflow, currentStart >= paragraphStart {
@@ -49,6 +52,15 @@ enum TranscriptFormatter {
         }
 
         return false
+    }
+
+    private static func endsSentence(_ text: String) -> Bool {
+        var characters = Array(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        while let last = characters.last, trailingSentenceClosers.contains(last) {
+            characters.removeLast()
+        }
+        guard let last = characters.last else { return false }
+        return sentenceTerminators.contains(last)
     }
 
 }

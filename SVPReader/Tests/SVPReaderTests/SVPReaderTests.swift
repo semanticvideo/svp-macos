@@ -160,12 +160,12 @@ final class SVPReaderTests: XCTestCase {
         XCTAssertEqual(transcript, "Hello. This continues")
     }
 
-    func testReadTranscriptTextBreaksOnlyOnSilence() throws {
+    func testReadTranscriptTextBreaksOnlyOnSentenceBoundaryWithSilence() throws {
         let fixture = try makeSVPFixture(transcriptLines: [
             #"{"text":"Speaker","start_us":0,"end_us":250000,"speaker_id":"speaker_0001","chunk_ordinal":0}"#,
             #"{"text":"one","start_us":250000,"end_us":500000,"speaker_id":"speaker_0001","chunk_ordinal":0}"#,
             #"{"text":"Speaker","start_us":500000,"end_us":750000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
-            #"{"text":"two","start_us":750000,"end_us":1000000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
+            #"{"text":"two.","start_us":750000,"end_us":1000000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
             #"{"text":"Later","start_us":3000000,"end_us":3250000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
             #"{"text":"chunk","start_us":3250000,"end_us":3500000,"speaker_id":"speaker_0002","chunk_ordinal":1}"#
         ])
@@ -173,16 +173,34 @@ final class SVPReaderTests: XCTestCase {
 
         let transcript = try SVPReader(url: fixture.svpURL).readTranscriptText()
 
-        XCTAssertEqual(transcript, "Speaker one Speaker two\n\nLater chunk")
+        XCTAssertEqual(transcript, "Speaker one Speaker two.\n\nLater chunk")
     }
 
-    func testTranscriptFormatterKeepsShortPausesInOneParagraph() {
+    func testTranscriptFormatterKeepsSubthresholdSentencePauseInOneParagraph() {
+        let words = [
+            TranscriptWordRecord(text: "Done.", startUS: 0, endUS: 500_000),
+            TranscriptWordRecord(text: "Next", startUS: 1_099_999, endUS: 1_200_000)
+        ]
+
+        XCTAssertEqual(TranscriptFormatter.format(words), "Done. Next")
+    }
+
+    func testTranscriptFormatterKeepsLongMidSentencePauseInOneParagraph() {
         let words = [
             TranscriptWordRecord(text: "Still", startUS: 0, endUS: 500_000),
-            TranscriptWordRecord(text: "together", startUS: 1_999_999, endUS: 2_100_000)
+            TranscriptWordRecord(text: "together", startUS: 3_000_000, endUS: 3_100_000)
         ]
 
         XCTAssertEqual(TranscriptFormatter.format(words), "Still together")
+    }
+
+    func testTranscriptFormatterBreaksAfterQuotedSentenceAndSixHundredMillisecondPause() {
+        let words = [
+            TranscriptWordRecord(text: "Done.”", startUS: 0, endUS: 500_000),
+            TranscriptWordRecord(text: "Next", startUS: 1_100_000, endUS: 1_200_000)
+        ]
+
+        XCTAssertEqual(TranscriptFormatter.format(words), "Done.”\n\nNext")
     }
 
     func testTranscriptFormatterHandlesTimestampBoundariesWithoutOverflow() {
