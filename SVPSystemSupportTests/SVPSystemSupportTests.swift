@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import SVPReader
 @testable import SVPSystemSupport
 
 final class SVPSystemSupportTests: XCTestCase {
@@ -227,5 +228,55 @@ final class SVPSystemSupportTests: XCTestCase {
             atPath: tempURL.path
         )) ?? []
         return Set(names.filter { $0.hasPrefix("svp-inspector-jsonl-") })
+    }
+
+    func testEmbeddedFinderServicesAdvertiseEverySystemMediaUTI() throws {
+        let plist = try XCTUnwrap(Bundle.main.infoDictionary)
+        let services = try XCTUnwrap(plist["NSServices"] as? [[String: Any]])
+        let required = Set(SVPPasteboardReader.systemMediaUTIs)
+        for title in ["Show Embedded SVPI Transcript", "Embedded SVPI Inspector"] {
+            let service = try XCTUnwrap(services.first { (($0["NSMenuItem"] as? [String: String])?["default"]) == title })
+            XCTAssertEqual(Set(try XCTUnwrap(service["NSSendFileTypes"] as? [String])), required)
+        }
+        XCTAssertEqual(required, Set(["public.mpeg-4", "com.apple.quicktime-movie", "com.apple.m4v-video", "public.mpeg-4-audio", "com.apple.m4a-audio"]))
+    }
+
+    func testRealEmbeddedDescriptorFeedsEveryLazyInspectorSection() throws {
+        let url = URL(fileURLWithPath: "/Users/domesposito/Desktop/test-30-semantic.mp4")
+        guard FileManager.default.fileExists(atPath: url.path) else { throw XCTSkip("Real semantic sample unavailable") }
+        guard case .embedded(let package) = SemanticMediaResolver.resolve(url: url) else { return XCTFail("Real sample did not resolve") }
+        let viewModel = SVPInspectorViewModel(fileURL: url, formatLabel: "Embedded SVPI", package: package)
+        XCTAssertEqual(viewModel.windowTitle, "test-30-semantic — Embedded SVPI Inspector")
+        XCTAssertEqual(try SVPInspectorDataLoader.loadOverview(from: url, package: package).manifest?.packageID, "svpi_test-30_pkg")
+        XCTAssertEqual(try SVPInspectorDataLoader.loadTranscript(from: url, package: package).words.rowCount, 58)
+        XCTAssertEqual(try SVPInspectorDataLoader.loadText(from: url, package: package).observations.rowCount, 23)
+        _ = try SVPInspectorDataLoader.loadEvidenceCrops(from: url, package: package)
+        XCTAssertEqual(try SVPInspectorDataLoader.loadColors(from: url, package: package).observations.rowCount, 37)
+        _ = try SVPInspectorDataLoader.loadTimeline(from: url, package: package)
+        _ = try SVPInspectorDataLoader.loadEntities(from: url, package: package)
+        XCTAssertEqual(try SVPInspectorDataLoader.loadRelationships(from: url, package: package).store.rowCount, 296)
+        _ = try SVPInspectorDataLoader.loadProvenance(from: url, package: package)
+        _ = try SVPInspectorDataLoader.loadIndex(from: url, package: package)
+        XCTAssertEqual(try SVPTranscriptLoader().loadTranscript(from: package).split(separator: " ").count, 58)
+        XCTAssertEqual(package.payloadOffset, viewModel.package?.payloadOffset)
+    }
+
+    func testRealEmbeddedPackageOpensExistingTranscriptAndInspectorWindows() throws {
+        let url = URL(fileURLWithPath: "/Users/domesposito/Desktop/test-30-semantic.mp4")
+        guard FileManager.default.fileExists(atPath: url.path) else { throw XCTSkip("Real semantic sample unavailable") }
+        guard case .embedded(let package) = SemanticMediaResolver.resolve(url: url) else { return XCTFail("Real sample did not resolve") }
+
+        let transcriptPresenter = SVPTranscriptWindowPresenter()
+        let transcriptWindow = transcriptPresenter.presentLoading(title: "test-30-semantic Transcript")
+        transcriptPresenter.completeLoading(window: transcriptWindow, text: try SVPTranscriptLoader().loadTranscript(from: package))
+        XCTAssertTrue(transcriptPresenter.contains(transcriptWindow))
+
+        let inspector = SVPInspectorWindowController(viewModel: SVPInspectorViewModel(fileURL: url, formatLabel: "Embedded SVPI", package: package))
+        inspector.present()
+        XCTAssertEqual(inspector.window?.title, "test-30-semantic — Embedded SVPI Inspector")
+        XCTAssertTrue(inspector.window?.isVisible == true)
+
+        transcriptPresenter.close(window: transcriptWindow)
+        inspector.close()
     }
 }

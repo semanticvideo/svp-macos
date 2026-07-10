@@ -1,6 +1,7 @@
 import AppKit
 import Quartz
 import SwiftUI
+import SVPReader
 
 // MARK: - Evidence Crops Detail View
 
@@ -35,6 +36,7 @@ struct EvidenceCropsDetailView: View {
                         ForEach(Array(data.crops.enumerated()), id: \.offset) { index, crop in
                             EvidenceCropCell(
                                 packageURL: data.fileURL,
+                                package: data.package,
                                 crop: crop,
                                 index: index
                             ) {
@@ -52,6 +54,7 @@ struct EvidenceCropsDetailView: View {
     private func showQuickLook(data: SVPInspectorEvidenceCropsData, startIndex: Int) {
         let controller = EvidenceCropQuickLookController(
             packageURL: data.fileURL,
+            package: data.package,
             crops: data.crops,
             startIndex: startIndex
         )
@@ -67,6 +70,7 @@ struct EvidenceCropsDetailView: View {
 
 struct EvidenceCropCell: View {
     let packageURL: URL
+    let package: SVPPackageDescriptor?
     let crop: [String: Any]
     let index: Int
     let onTap: () -> Void
@@ -124,6 +128,7 @@ struct EvidenceCropCell: View {
         DispatchQueue.global(qos: .userInitiated).async {
             let data = try? SVPInspectorDataLoader.loadEvidenceCropImage(
                 packageURL: packageURL,
+                package: package,
                 cropFilePath: cropFilePath
             )
             DispatchQueue.main.async {
@@ -167,12 +172,14 @@ struct EvidenceCropCell: View {
 
 final class EvidenceCropQuickLookController: NSObject, QLPreviewPanelDataSource {
     private let packageURL: URL
+    private let package: SVPPackageDescriptor?
     private let crops: [[String: Any]]
     let startIndex: Int
     private(set) var tempURLs: [URL] = []
 
-    init(packageURL: URL, crops: [[String: Any]], startIndex: Int) {
+    init(packageURL: URL, package: SVPPackageDescriptor?, crops: [[String: Any]], startIndex: Int) {
         self.packageURL = packageURL
+        self.package = package
         self.crops = crops
         self.startIndex = startIndex
         super.init()
@@ -189,6 +196,7 @@ final class EvidenceCropQuickLookController: NSObject, QLPreviewPanelDataSource 
         guard let cropFilePath = crop["crop_file_path"] as? String,
               let imageData = try? SVPInspectorDataLoader.loadEvidenceCropImage(
                 packageURL: packageURL,
+                package: package,
                 cropFilePath: cropFilePath
               ) else { return }
 

@@ -29,6 +29,11 @@ public final class SVPReader: @unchecked Sendable {
         self.zipReader = try ZipReader(url: url)
     }
 
+    public init(package: SVPPackageDescriptor) throws {
+        self.url = package.mediaURL
+        self.zipReader = try ZipReader(source: package.source)
+    }
+
     public func validateSVP() throws {
         guard zipReader.hasEntry("mimetype") else {
             throw SVPError.notSVPFile("No mimetype entry found")

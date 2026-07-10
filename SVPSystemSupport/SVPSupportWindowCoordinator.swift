@@ -1,5 +1,6 @@
 import AppKit
 import Darwin
+import SVPReader
 
 final class SVPSupportWindowCoordinator {
     private let transcriptLoader = SVPTranscriptLoader()
@@ -51,10 +52,32 @@ final class SVPSupportWindowCoordinator {
         showInspector(for: svpiURL, formatLabel: "SVPI")
     }
 
-    private func showInspector(for url: URL, formatLabel: String) {
+    func showEmbeddedTranscript(package: SVPPackageDescriptor) {
+        let title = package.mediaURL.deletingPathExtension().lastPathComponent
+        prepareForSupportWindowPresentation(reason: "embedded transcript")
+        let window = transcriptPresenter.presentLoading(title: "\(title) Transcript")
+        DispatchQueue.global(qos: .userInitiated).async { [transcriptLoader, weak self, weak window] in
+            let result = Result { try transcriptLoader.loadTranscript(from: package) }
+            DispatchQueue.main.async {
+                guard let self, let window, self.transcriptPresenter.contains(window) else { return }
+                switch result {
+                case .success(let transcript): self.transcriptPresenter.completeLoading(window: window, text: transcript)
+                case .failure(let error):
+                    self.transcriptPresenter.close(window: window)
+                    let alert = NSAlert(); alert.messageText = "Failed to show transcript"; alert.informativeText = String(describing: error); alert.runModal()
+                }
+            }
+        }
+    }
+
+    func showEmbeddedInspector(package: SVPPackageDescriptor) {
+        showInspector(for: package.mediaURL, formatLabel: "Embedded SVPI", package: package)
+    }
+
+    private func showInspector(for url: URL, formatLabel: String, package: SVPPackageDescriptor? = nil) {
         SVPAppLogger.log("App opening inspector for: \(url.path)")
 
-        let viewModel = SVPInspectorViewModel(fileURL: url, formatLabel: formatLabel)
+        let viewModel = SVPInspectorViewModel(fileURL: url, formatLabel: formatLabel, package: package)
         let windowController = SVPInspectorWindowController(viewModel: viewModel)
         windowController.onClose = { [weak self, weak windowController] in
             guard let windowController else { return }

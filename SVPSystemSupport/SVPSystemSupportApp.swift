@@ -94,4 +94,22 @@ final class SVPSystemSupportApp: NSObject, NSApplicationDelegate {
 
         supportWindowCoordinator.showInspectorSVPI(for: svpiURL)
     }
+
+    @objc(showEmbeddedSVPITranscriptService:userData:error:)
+    func showEmbeddedSVPITranscriptService(_ pasteboard: NSPasteboard, userData: NSString?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        guard let mediaURL = SVPPasteboardReader.semanticMediaURL(from: pasteboard) else {
+            error.pointee = "No supported media file was provided."
+            return
+        }
+        EmbeddedSVPIFinderServiceRouter.route(mediaURL: mediaURL, action: .transcript, coordinator: supportWindowCoordinator)
+    }
+
+    @objc(inspectEmbeddedSVPIService:userData:error:)
+    func inspectEmbeddedSVPIService(_ pasteboard: NSPasteboard, userData: NSString?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        guard let mediaURL = SVPPasteboardReader.semanticMediaURL(from: pasteboard) else {
+            error.pointee = "No supported media file was provided."
+            return
+        }
+        EmbeddedSVPIFinderServiceRouter.route(mediaURL: mediaURL, action: .inspector, coordinator: supportWindowCoordinator)
+    }
 }

@@ -10,4 +10,11 @@ final class SVPTranscriptLoader {
         SVPAppLogger.log("App loaded transcript: \(transcript.count) characters")
         return transcript
     }
+
+    func loadTranscript(from package: SVPPackageDescriptor) throws -> String {
+        SVPAppLogger.log("App loading embedded transcript from: \(package.mediaURL.path)")
+        let reader = try SVPReader(package: package)
+        try reader.validateSVP()
+        return try reader.readTranscriptText()
+    }
 }

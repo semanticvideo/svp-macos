@@ -1,9 +1,11 @@
 import Combine
 import Foundation
+import SVPReader
 
 final class SVPInspectorViewModel: ObservableObject {
     let fileURL: URL
     let formatLabel: String
+    let package: SVPPackageDescriptor?
 
     @Published private(set) var overviewState: SVPInspectorLoadState<SVPInspectorOverviewData> = .idle
     @Published private(set) var transcriptState: SVPInspectorLoadState<SVPInspectorTranscriptData> = .idle
@@ -17,9 +19,10 @@ final class SVPInspectorViewModel: ObservableObject {
     @Published private(set) var indexState: SVPInspectorLoadState<SVPInspectorIndexData> = .idle
     private var scheduledSections = Set<SVPInspectorSection>()
 
-    init(fileURL: URL, formatLabel: String) {
+    init(fileURL: URL, formatLabel: String, package: SVPPackageDescriptor? = nil) {
         self.fileURL = fileURL
         self.formatLabel = formatLabel
+        self.package = package
     }
 
     var windowTitle: String {
@@ -76,7 +79,7 @@ final class SVPInspectorViewModel: ObservableObject {
         overviewState = .loading
         load(
             sectionName: "overview",
-            work: { try SVPInspectorDataLoader.loadOverview(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadOverview(from: self.fileURL, package: self.package) },
             assign: { self.overviewState = $0 }
         )
     }
@@ -86,7 +89,7 @@ final class SVPInspectorViewModel: ObservableObject {
         transcriptState = .loading
         load(
             sectionName: "transcript",
-            work: { try SVPInspectorDataLoader.loadTranscript(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadTranscript(from: self.fileURL, package: self.package) },
             assign: { self.transcriptState = $0 }
         )
     }
@@ -96,7 +99,7 @@ final class SVPInspectorViewModel: ObservableObject {
         textState = .loading
         load(
             sectionName: "text",
-            work: { try SVPInspectorDataLoader.loadText(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadText(from: self.fileURL, package: self.package) },
             assign: { self.textState = $0 }
         )
     }
@@ -106,7 +109,7 @@ final class SVPInspectorViewModel: ObservableObject {
         evidenceCropsState = .loading
         load(
             sectionName: "evidence crops",
-            work: { try SVPInspectorDataLoader.loadEvidenceCrops(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadEvidenceCrops(from: self.fileURL, package: self.package) },
             assign: { self.evidenceCropsState = $0 }
         )
     }
@@ -116,7 +119,7 @@ final class SVPInspectorViewModel: ObservableObject {
         colorsState = .loading
         load(
             sectionName: "colors",
-            work: { try SVPInspectorDataLoader.loadColors(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadColors(from: self.fileURL, package: self.package) },
             assign: { self.colorsState = $0 }
         )
     }
@@ -126,7 +129,7 @@ final class SVPInspectorViewModel: ObservableObject {
         timelineState = .loading
         load(
             sectionName: "timeline",
-            work: { try SVPInspectorDataLoader.loadTimeline(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadTimeline(from: self.fileURL, package: self.package) },
             assign: { self.timelineState = $0 }
         )
     }
@@ -136,7 +139,7 @@ final class SVPInspectorViewModel: ObservableObject {
         entitiesState = .loading
         load(
             sectionName: "entities",
-            work: { try SVPInspectorDataLoader.loadEntities(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadEntities(from: self.fileURL, package: self.package) },
             assign: { self.entitiesState = $0 }
         )
     }
@@ -146,7 +149,7 @@ final class SVPInspectorViewModel: ObservableObject {
         relationshipsState = .loading
         load(
             sectionName: "relationships",
-            work: { try SVPInspectorDataLoader.loadRelationships(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadRelationships(from: self.fileURL, package: self.package) },
             assign: { self.relationshipsState = $0 }
         )
     }
@@ -156,7 +159,7 @@ final class SVPInspectorViewModel: ObservableObject {
         provenanceState = .loading
         load(
             sectionName: "provenance",
-            work: { try SVPInspectorDataLoader.loadProvenance(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadProvenance(from: self.fileURL, package: self.package) },
             assign: { self.provenanceState = $0 }
         )
     }
@@ -166,7 +169,7 @@ final class SVPInspectorViewModel: ObservableObject {
         indexState = .loading
         load(
             sectionName: "index",
-            work: { try SVPInspectorDataLoader.loadIndex(from: self.fileURL) },
+            work: { try SVPInspectorDataLoader.loadIndex(from: self.fileURL, package: self.package) },
             assign: { self.indexState = $0 }
         )
     }
