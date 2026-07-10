@@ -241,6 +241,25 @@ final class SVPSystemSupportTests: XCTestCase {
         XCTAssertEqual(required, Set(["public.mpeg-4", "com.apple.quicktime-movie", "com.apple.m4v-video", "public.mpeg-4-audio", "com.apple.m4a-audio"]))
     }
 
+    func testEmbeddedFinderServiceResolutionRunsOffMainThreadAndCompletesOnMainThread() {
+        let completed = expectation(description: "resolution completed")
+        EmbeddedSVPIFinderServiceRouter.resolve(
+            mediaURL: URL(fileURLWithPath: "/tmp/media.mp4"),
+            resolver: { _ in
+                XCTAssertFalse(Thread.isMainThread)
+                return .noEmbeddedSvpi
+            },
+            completion: { status in
+                XCTAssertTrue(Thread.isMainThread)
+                guard case .noEmbeddedSvpi = status else {
+                    return XCTFail("Expected no-embedding status")
+                }
+                completed.fulfill()
+            }
+        )
+        wait(for: [completed], timeout: 2)
+    }
+
     func testRealEmbeddedDescriptorFeedsEveryLazyInspectorSection() throws {
         let url = URL(fileURLWithPath: "/Users/domesposito/Desktop/test-30-semantic.mp4")
         guard FileManager.default.fileExists(atPath: url.path) else { throw XCTSkip("Real semantic sample unavailable") }

@@ -3,7 +3,24 @@ import SVPReader
 
 enum EmbeddedSVPIFinderServiceRouter {
     static func route(mediaURL: URL, action: Action, coordinator: SVPSupportWindowCoordinator) {
-        switch SemanticMediaResolver.resolve(url: mediaURL) {
+        resolve(mediaURL: mediaURL) { status in
+            handle(status: status, action: action, coordinator: coordinator)
+        }
+    }
+
+    static func resolve(
+        mediaURL: URL,
+        resolver: @escaping @Sendable (URL) -> SemanticMediaStatus = SemanticMediaResolver.resolve,
+        completion: @escaping @Sendable (SemanticMediaStatus) -> Void
+    ) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let status = resolver(mediaURL)
+            DispatchQueue.main.async { completion(status) }
+        }
+    }
+
+    private static func handle(status: SemanticMediaStatus, action: Action, coordinator: SVPSupportWindowCoordinator) {
+        switch status {
         case .embedded(let package):
             switch action {
             case .transcript: coordinator.showEmbeddedTranscript(package: package)
