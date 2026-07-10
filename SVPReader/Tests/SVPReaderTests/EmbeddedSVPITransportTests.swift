@@ -6,11 +6,25 @@ final class EmbeddedSVPITransportTests: XCTestCase {
     private var packageRoot: URL { URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent() }
 
     func testSupportedBrandFamilies() throws {
-        let cases: [(String, ISOBaseMediaFamily)] = [("mp42", .mp4), ("qt  ", .quickTime), ("M4V ", .m4v), ("M4A ", .m4a)]
+        let cases: [(String, ISOBaseMediaFamily)] = [("mp42", .mp4), ("qt  ", .quickTime), ("M4V ", .m4v), ("M4A ", .m4a), ("M4P ", .m4a)]
         for (brand, family) in cases {
             let source = MemorySource(ftyp(brand: brand) + box(type: "free", payload: Data()))
             XCTAssertEqual(try ISOBMFFScanner.scan(source: source)?.family, family)
         }
+    }
+
+    func testUnregisteredBrandPrefixesRemainUnsupported() throws {
+        for brand in ["isox", "cmfZ"] {
+            XCTAssertNil(try ISOBMFFScanner.scan(source: MemorySource(ftyp(brand: brand))))
+        }
+    }
+
+    func testExtendedSizeLeadingFtypIsAccepted() throws {
+        let payload = Data("mp42".utf8) + be32(0) + Data("mp42".utf8)
+        let extendedFtyp = be32(1) + Data("ftyp".utf8) + be64(UInt64(16 + payload.count)) + payload
+        let scan = try ISOBMFFScanner.scan(source: MemorySource(extendedFtyp + box(type: "free", payload: Data())))
+        XCTAssertEqual(scan?.majorBrand, "mp42")
+        XCTAssertEqual(scan?.family, .mp4)
     }
 
     func testSupportedMediaWithoutEmbedding() throws {

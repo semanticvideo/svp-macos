@@ -21,15 +21,27 @@ public enum ISOBMFFScanner {
         guard source.length >= 8 else { return nil }
         let first = try source.read(offset: 0, length: 8)
         guard ascii(first, 4) == "ftyp" else { return nil }
-        let firstSize = UInt64(be32(first, 0))
-        guard firstSize != 0, firstSize != 1, firstSize >= 16, firstSize <= source.length, firstSize <= 1_048_576 else {
+        let compactFirstSize = be32(first, 0)
+        let firstSize: UInt64
+        let brandOffset: Int
+        if compactFirstSize == 1 {
+            guard source.length >= 16 else { throw EmbeddedSVPIError.malformedContainer("The leading ftyp box is truncated.") }
+            firstSize = be64(try source.read(offset: 8, length: 8), 0)
+            brandOffset = 16
+        } else {
+            firstSize = UInt64(compactFirstSize)
+            brandOffset = 8
+        }
+        let minimumFtypSize = UInt64(brandOffset + 8)
+        guard compactFirstSize != 0, firstSize >= minimumFtypSize, firstSize <= source.length, firstSize <= 1_048_576 else {
             throw EmbeddedSVPIError.malformedContainer("The leading ftyp box is invalid.")
         }
         let ftyp = try source.read(offset: 0, length: Int(firstSize))
-        let majorBrand = ascii(ftyp, 8)
+        let majorBrand = ascii(ftyp, brandOffset)
         var compatibleBrands: [String] = []
-        if ftyp.count > 16 {
-            var position = 16
+        let compatibleBrandOffset = brandOffset + 8
+        if ftyp.count > compatibleBrandOffset {
+            var position = compatibleBrandOffset
             while position + 4 <= ftyp.count {
                 compatibleBrands.append(ascii(ftyp, position))
                 position += 4
@@ -88,10 +100,10 @@ public enum ISOBMFFScanner {
 
     private static func classify(brands: [String]) -> ISOBaseMediaFamily? {
         if brands.contains("qt  ") { return .quickTime }
-        if brands.contains("M4V ") || brands.contains("M4VH") || brands.contains("M4VP") { return .m4v }
-        if brands.contains("M4A ") || brands.contains("M4B ") { return .m4a }
-        let exact: Set<String> = ["isom", "iso2", "iso3", "iso4", "iso5", "iso6", "iso7", "iso8", "iso9", "mp41", "mp42", "avc1", "dash", "cmfc", "cmfs", "cmff", "cmfl"]
-        if brands.contains(where: { exact.contains($0) || $0.hasPrefix("iso") || $0.hasPrefix("cmf") }) { return .mp4 }
+        if brands.contains(where: { ["M4A ", "M4B ", "M4P "].contains($0) }) { return .m4a }
+        if brands.contains(where: { ["M4V ", "M4VH", "M4VP"].contains($0) }) { return .m4v }
+        let supportedMP4Brands: Set<String> = ["isom", "iso2", "iso3", "iso4", "iso5", "iso6", "iso7", "iso8", "iso9", "mp41", "mp42", "avc1", "dash", "cmfc", "cmfs"]
+        if brands.contains(where: supportedMP4Brands.contains) { return .mp4 }
         return nil
     }
 
