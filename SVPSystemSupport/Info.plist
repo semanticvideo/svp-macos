@@ -116,6 +116,32 @@
 				<string>com.semanticvideo.svpi</string>
 			</array>
 		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict><key>default</key><string>Show Embedded SVPI Transcript</string></dict>
+			<key>NSMessage</key><string>showEmbeddedSVPITranscriptService</string>
+			<key>NSPortName</key><string>SVPSystemSupport</string>
+			<key>NSRequiredContext</key><dict><key>NSApplicationIdentifier</key><string>com.apple.finder</string></dict>
+			<key>NSRestricted</key><false/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.mpeg-4</string><string>com.apple.quicktime-movie</string><string>com.apple.m4v-video</string>
+				<string>public.mpeg-4-audio</string><string>com.apple.m4a-audio</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict><key>default</key><string>Embedded SVPI Inspector</string></dict>
+			<key>NSMessage</key><string>inspectEmbeddedSVPIService</string>
+			<key>NSPortName</key><string>SVPSystemSupport</string>
+			<key>NSRequiredContext</key><dict><key>NSApplicationIdentifier</key><string>com.apple.finder</string></dict>
+			<key>NSRestricted</key><false/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.mpeg-4</string><string>com.apple.quicktime-movie</string><string>com.apple.m4v-video</string>
+				<string>public.mpeg-4-audio</string><string>com.apple.m4a-audio</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>

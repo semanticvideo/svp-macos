@@ -33,6 +33,7 @@ struct SVPInspectorTextData {
 
 struct SVPInspectorEvidenceCropsData {
     let fileURL: URL
+    let package: SVPPackageDescriptor?
     let crops: [[String: Any]]
 }
 
@@ -70,9 +71,9 @@ struct SVPInspectorIndexData {
 }
 
 enum SVPInspectorDataLoader {
-    nonisolated static func loadOverview(from url: URL) throws -> SVPInspectorOverviewData {
+    nonisolated static func loadOverview(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorOverviewData {
         try timed("overview") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             let allEntries = reader.allEntryNames
             let manifest = try? reader.readManifest()
             let mediaInfo = try? reader.locatePrimaryMediaAsset()
@@ -89,9 +90,9 @@ enum SVPInspectorDataLoader {
         }
     }
 
-    nonisolated static func loadTranscript(from url: URL) throws -> SVPInspectorTranscriptData {
+    nonisolated static func loadTranscript(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorTranscriptData {
         try timed("transcript section") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             return SVPInspectorTranscriptData(
                 words: try readJSONLStore("transcript/words.jsonl", from: reader),
                 summary: readJSON("transcript/transcript.json", from: reader),
@@ -101,9 +102,9 @@ enum SVPInspectorDataLoader {
         }
     }
 
-    nonisolated static func loadText(from url: URL) throws -> SVPInspectorTextData {
+    nonisolated static func loadText(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorTextData {
         try timed("text section") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             return SVPInspectorTextData(
                 regions: try readJSONLStore("text/text_regions.jsonl", from: reader),
                 observations: try readJSONLStore("text/text_observations.jsonl", from: reader),
@@ -113,27 +114,28 @@ enum SVPInspectorDataLoader {
         }
     }
 
-    nonisolated static func loadEvidenceCrops(from url: URL) throws -> SVPInspectorEvidenceCropsData {
+    nonisolated static func loadEvidenceCrops(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorEvidenceCropsData {
         try timed("evidence crops section") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             return SVPInspectorEvidenceCropsData(
                 fileURL: url,
+                package: package,
                 crops: readJSONL("text/evidence_crops.jsonl", from: reader)
             )
         }
     }
 
-    nonisolated static func loadEvidenceCropImage(packageURL: URL, cropFilePath: String) throws -> Data? {
+    nonisolated static func loadEvidenceCropImage(packageURL: URL, package: SVPPackageDescriptor? = nil, cropFilePath: String) throws -> Data? {
         try timed("evidence crop image \(cropFilePath)") {
-            let reader = try validatedReader(for: packageURL)
+            let reader = try validatedReader(for: packageURL, package: package)
             guard reader.hasEntry(cropFilePath) else { return nil }
             return try reader.readEntryData(cropFilePath)
         }
     }
 
-    nonisolated static func loadColors(from url: URL) throws -> SVPInspectorColorsData {
+    nonisolated static func loadColors(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorColorsData {
         try timed("colors section") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             return SVPInspectorColorsData(
                 observations: try readJSONLStore("colors/color_observations.jsonl", from: reader),
                 summary: readJSON("colors/color_summary.json", from: reader),
@@ -142,9 +144,9 @@ enum SVPInspectorDataLoader {
         }
     }
 
-    nonisolated static func loadTimeline(from url: URL) throws -> SVPInspectorTimelineData {
+    nonisolated static func loadTimeline(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorTimelineData {
         try timed("timeline section") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             return SVPInspectorTimelineData(
                 shots: try readJSONLStore("timeline/shots.jsonl", from: reader),
                 scenes: try readJSONLStore("timeline/scenes.jsonl", from: reader),
@@ -153,9 +155,9 @@ enum SVPInspectorDataLoader {
         }
     }
 
-    nonisolated static func loadEntities(from url: URL) throws -> SVPInspectorEntitiesData {
+    nonisolated static func loadEntities(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorEntitiesData {
         try timed("entities section") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             return SVPInspectorEntitiesData(
                 entities: try readJSONLStore("entities/entities.jsonl", from: reader),
                 entityTracks: try readJSONLStore("entities/entity_tracks.jsonl", from: reader)
@@ -163,18 +165,18 @@ enum SVPInspectorDataLoader {
         }
     }
 
-    nonisolated static func loadRelationships(from url: URL) throws -> SVPInspectorRelationshipsData {
+    nonisolated static func loadRelationships(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorRelationshipsData {
         try timed("relationships section") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             return SVPInspectorRelationshipsData(
                 store: try readJSONLStore("relationships/relationships.jsonl", from: reader)
             )
         }
     }
 
-    nonisolated static func loadProvenance(from url: URL) throws -> SVPInspectorProvenanceData {
+    nonisolated static func loadProvenance(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorProvenanceData {
         try timed("provenance section") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             return SVPInspectorProvenanceData(
                 build: readJSON("provenance/build.json", from: reader),
                 processors: try readJSONLStore("provenance/processors.jsonl", from: reader),
@@ -183,9 +185,9 @@ enum SVPInspectorDataLoader {
         }
     }
 
-    nonisolated static func loadIndex(from url: URL) throws -> SVPInspectorIndexData {
+    nonisolated static func loadIndex(from url: URL, package: SVPPackageDescriptor? = nil) throws -> SVPInspectorIndexData {
         try timed("index section") {
-            let reader = try validatedReader(for: url)
+            let reader = try validatedReader(for: url, package: package)
             return SVPInspectorIndexData(
                 allEntries: reader.allEntryNames,
                 manifest: readJSON("index/index_manifest.json", from: reader),
@@ -194,8 +196,10 @@ enum SVPInspectorDataLoader {
         }
     }
 
-    private nonisolated static func validatedReader(for url: URL) throws -> SVPReader {
-        let reader = try SVPReader(url: url)
+    private nonisolated static func validatedReader(for url: URL, package: SVPPackageDescriptor?) throws -> SVPReader {
+        let reader: SVPReader
+        if let package { reader = try SVPReader(package: package) }
+        else { reader = try SVPReader(url: url) }
         try reader.validateSVP()
         return reader
     }
