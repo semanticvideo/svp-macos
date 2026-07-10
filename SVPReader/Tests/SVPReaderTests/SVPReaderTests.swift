@@ -176,6 +176,24 @@ final class SVPReaderTests: XCTestCase {
         XCTAssertEqual(transcript, "Speaker one\n\nSpeaker two\n\nLater\n\nchunk")
     }
 
+    func testTranscriptFormatterKeepsShortPausesInOneParagraph() {
+        let words = [
+            TranscriptWordRecord(text: "Still", startUS: 0, endUS: 500_000, speakerID: nil, chunkOrdinal: nil),
+            TranscriptWordRecord(text: "together", startUS: 1_999_999, endUS: 2_100_000, speakerID: nil, chunkOrdinal: nil)
+        ]
+
+        XCTAssertEqual(TranscriptFormatter.format(words), "Still together")
+    }
+
+    func testTranscriptFormatterHandlesTimestampBoundariesWithoutOverflow() {
+        let words = [
+            TranscriptWordRecord(text: "Boundary", startUS: Int64.max - 1, endUS: Int64.max, speakerID: nil, chunkOrdinal: nil),
+            TranscriptWordRecord(text: "safe", startUS: Int64.max, endUS: Int64.max, speakerID: nil, chunkOrdinal: nil)
+        ]
+
+        XCTAssertEqual(TranscriptFormatter.format(words), "Boundary safe")
+    }
+
     func testReadTranscriptTextRejectsMissingWordsEntry() throws {
         let fixture = try makeSVPFixture()
         defer { try? FileManager.default.removeItem(at: fixture.tempDir) }

@@ -9,6 +9,8 @@ struct TranscriptWordRecord {
 }
 
 enum TranscriptFormatter {
+    private static let paragraphSilenceThresholdUS: Int64 = 1_500_000
+
     static func format(_ words: [TranscriptWordRecord]) -> String {
         var paragraphs: [String] = []
         var currentWords: [String] = []
@@ -53,9 +55,11 @@ enum TranscriptFormatter {
         }
 
         if let previousEnd = previous.endUS,
-           let currentStart = current.startUS,
-           currentStart - previousEnd >= 1_500_000 {
-            return true
+           let currentStart = current.startUS {
+            let (paragraphStart, overflow) = previousEnd.addingReportingOverflow(paragraphSilenceThresholdUS)
+            if !overflow, currentStart >= paragraphStart {
+                return true
+            }
         }
 
         return false
