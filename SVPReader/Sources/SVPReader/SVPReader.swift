@@ -157,9 +157,7 @@ public final class SVPReader: @unchecked Sendable {
                 return TranscriptWordRecord(
                     text: text,
                     startUS: Self.int64Value(object["start_us"]),
-                    endUS: Self.int64Value(object["end_us"]),
-                    speakerID: object["speaker_id"] as? String,
-                    chunkOrdinal: Self.intValue(object["chunk_ordinal"])
+                    endUS: Self.int64Value(object["end_us"])
                 )
             }
 
@@ -276,9 +274,4 @@ public final class SVPReader: @unchecked Sendable {
         return nil
     }
 
-    private static func intValue(_ value: Any?) -> Int? {
-        if let number = value as? NSNumber { return number.intValue }
-        if let string = value as? String { return Int(string) }
-        return nil
-    }
 }

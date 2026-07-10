@@ -160,7 +160,7 @@ final class SVPReaderTests: XCTestCase {
         XCTAssertEqual(transcript, "Hello. This continues")
     }
 
-    func testReadTranscriptTextBreaksOnSpeakerGapAndChunkChanges() throws {
+    func testReadTranscriptTextBreaksOnlyOnSilence() throws {
         let fixture = try makeSVPFixture(transcriptLines: [
             #"{"text":"Speaker","start_us":0,"end_us":250000,"speaker_id":"speaker_0001","chunk_ordinal":0}"#,
             #"{"text":"one","start_us":250000,"end_us":500000,"speaker_id":"speaker_0001","chunk_ordinal":0}"#,
@@ -173,13 +173,13 @@ final class SVPReaderTests: XCTestCase {
 
         let transcript = try SVPReader(url: fixture.svpURL).readTranscriptText()
 
-        XCTAssertEqual(transcript, "Speaker one\n\nSpeaker two\n\nLater\n\nchunk")
+        XCTAssertEqual(transcript, "Speaker one Speaker two\n\nLater chunk")
     }
 
     func testTranscriptFormatterKeepsShortPausesInOneParagraph() {
         let words = [
-            TranscriptWordRecord(text: "Still", startUS: 0, endUS: 500_000, speakerID: nil, chunkOrdinal: nil),
-            TranscriptWordRecord(text: "together", startUS: 1_999_999, endUS: 2_100_000, speakerID: nil, chunkOrdinal: nil)
+            TranscriptWordRecord(text: "Still", startUS: 0, endUS: 500_000),
+            TranscriptWordRecord(text: "together", startUS: 1_999_999, endUS: 2_100_000)
         ]
 
         XCTAssertEqual(TranscriptFormatter.format(words), "Still together")
@@ -187,8 +187,8 @@ final class SVPReaderTests: XCTestCase {
 
     func testTranscriptFormatterHandlesTimestampBoundariesWithoutOverflow() {
         let words = [
-            TranscriptWordRecord(text: "Boundary", startUS: Int64.max - 1, endUS: Int64.max, speakerID: nil, chunkOrdinal: nil),
-            TranscriptWordRecord(text: "safe", startUS: Int64.max, endUS: Int64.max, speakerID: nil, chunkOrdinal: nil)
+            TranscriptWordRecord(text: "Boundary", startUS: Int64.max - 1, endUS: Int64.max),
+            TranscriptWordRecord(text: "safe", startUS: Int64.max, endUS: Int64.max)
         ]
 
         XCTAssertEqual(TranscriptFormatter.format(words), "Boundary safe")

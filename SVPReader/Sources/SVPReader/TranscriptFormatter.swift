@@ -4,8 +4,6 @@ struct TranscriptWordRecord {
     let text: String
     let startUS: Int64?
     let endUS: Int64?
-    let speakerID: String?
-    let chunkOrdinal: Int?
 }
 
 enum TranscriptFormatter {
@@ -41,18 +39,6 @@ enum TranscriptFormatter {
         before current: TranscriptWordRecord
     ) -> Bool {
         guard let previous else { return false }
-
-        if let previousChunk = previous.chunkOrdinal,
-           let currentChunk = current.chunkOrdinal,
-           previousChunk != currentChunk {
-            return true
-        }
-
-        if let previousSpeaker = previous.speakerID,
-           let currentSpeaker = current.speakerID,
-           previousSpeaker != currentSpeaker {
-            return true
-        }
 
         if let previousEnd = previous.endUS,
            let currentStart = current.startUS {
