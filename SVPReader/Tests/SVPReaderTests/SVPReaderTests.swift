@@ -147,6 +147,71 @@ final class SVPReaderTests: XCTestCase {
         XCTAssertEqual(transcript, "hello semantic video")
     }
 
+    func testReadTranscriptTextKeepsSentencePunctuationInFlow() throws {
+        let fixture = try makeSVPFixture(transcriptLines: [
+            #"{"text":"Hello.","start_us":0,"end_us":500000}"#,
+            #"{"text":"This","start_us":600000,"end_us":700000}"#,
+            #"{"text":"continues","start_us":700000,"end_us":800000}"#
+        ])
+        defer { try? FileManager.default.removeItem(at: fixture.tempDir) }
+
+        let transcript = try SVPReader(url: fixture.svpURL).readTranscriptText()
+
+        XCTAssertEqual(transcript, "Hello. This continues")
+    }
+
+    func testReadTranscriptTextBreaksOnlyOnSentenceBoundaryWithSilence() throws {
+        let fixture = try makeSVPFixture(transcriptLines: [
+            #"{"text":"Speaker","start_us":0,"end_us":250000,"speaker_id":"speaker_0001","chunk_ordinal":0}"#,
+            #"{"text":"one","start_us":250000,"end_us":500000,"speaker_id":"speaker_0001","chunk_ordinal":0}"#,
+            #"{"text":"Speaker","start_us":500000,"end_us":750000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
+            #"{"text":"two.","start_us":750000,"end_us":1000000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
+            #"{"text":"Later","start_us":3000000,"end_us":3250000,"speaker_id":"speaker_0002","chunk_ordinal":0}"#,
+            #"{"text":"chunk","start_us":3250000,"end_us":3500000,"speaker_id":"speaker_0002","chunk_ordinal":1}"#
+        ])
+        defer { try? FileManager.default.removeItem(at: fixture.tempDir) }
+
+        let transcript = try SVPReader(url: fixture.svpURL).readTranscriptText()
+
+        XCTAssertEqual(transcript, "Speaker one Speaker two.\n\nLater chunk")
+    }
+
+    func testTranscriptFormatterKeepsSubthresholdSentencePauseInOneParagraph() {
+        let words = [
+            TranscriptWordRecord(text: "Done.", startUS: 0, endUS: 500_000),
+            TranscriptWordRecord(text: "Next", startUS: 1_099_999, endUS: 1_200_000)
+        ]
+
+        XCTAssertEqual(TranscriptFormatter.format(words), "Done. Next")
+    }
+
+    func testTranscriptFormatterKeepsLongMidSentencePauseInOneParagraph() {
+        let words = [
+            TranscriptWordRecord(text: "Still", startUS: 0, endUS: 500_000),
+            TranscriptWordRecord(text: "together", startUS: 3_000_000, endUS: 3_100_000)
+        ]
+
+        XCTAssertEqual(TranscriptFormatter.format(words), "Still together")
+    }
+
+    func testTranscriptFormatterBreaksAfterQuotedSentenceAndSixHundredMillisecondPause() {
+        let words = [
+            TranscriptWordRecord(text: "Done.”", startUS: 0, endUS: 500_000),
+            TranscriptWordRecord(text: "Next", startUS: 1_100_000, endUS: 1_200_000)
+        ]
+
+        XCTAssertEqual(TranscriptFormatter.format(words), "Done.”\n\nNext")
+    }
+
+    func testTranscriptFormatterHandlesTimestampBoundariesWithoutOverflow() {
+        let words = [
+            TranscriptWordRecord(text: "Boundary", startUS: Int64.max - 1, endUS: Int64.max),
+            TranscriptWordRecord(text: "safe", startUS: Int64.max, endUS: Int64.max)
+        ]
+
+        XCTAssertEqual(TranscriptFormatter.format(words), "Boundary safe")
+    }
+
     func testReadTranscriptTextRejectsMissingWordsEntry() throws {
         let fixture = try makeSVPFixture()
         defer { try? FileManager.default.removeItem(at: fixture.tempDir) }

@@ -152,21 +152,25 @@ public final class SVPReader: @unchecked Sendable {
 
         let words = jsonLines
             .split(whereSeparator: \.isNewline)
-            .compactMap { line -> String? in
+            .compactMap { line -> TranscriptWordRecord? in
                 guard let data = String(line).data(using: .utf8),
                       let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let text = object["text"] as? String
                 else {
                     return nil
                 }
-                return text
+                return TranscriptWordRecord(
+                    text: text,
+                    startUS: Self.int64Value(object["start_us"]),
+                    endUS: Self.int64Value(object["end_us"])
+                )
             }
 
         guard !words.isEmpty else {
             throw SVPError.ioError("Transcript is empty")
         }
 
-        return words.joined(separator: " ")
+        return TranscriptFormatter.format(words)
     }
 
     public func materializePrimaryMedia(to directory: URL? = nil) throws -> URL {
@@ -268,4 +272,11 @@ public final class SVPReader: @unchecked Sendable {
             return (try? JSONSerialization.jsonObject(with: lineData)) as? [String: Any]
         }
     }
+
+    private static func int64Value(_ value: Any?) -> Int64? {
+        if let number = value as? NSNumber { return number.int64Value }
+        if let string = value as? String { return Int64(string) }
+        return nil
+    }
+
 }

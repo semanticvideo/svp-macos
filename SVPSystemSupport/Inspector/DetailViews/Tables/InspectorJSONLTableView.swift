@@ -6,9 +6,20 @@ struct InspectorJSONLTableView: NSViewRepresentable {
 
     let store: SVPInspectorJSONLStore
     let columns: [InspectorJSONLColumn]
+    let defaultRowOrder: ((SVPInspectorJSONLStore) -> [Int])?
+
+    init(
+        store: SVPInspectorJSONLStore,
+        columns: [InspectorJSONLColumn],
+        defaultRowOrder: ((SVPInspectorJSONLStore) -> [Int])? = nil
+    ) {
+        self.store = store
+        self.columns = columns
+        self.defaultRowOrder = defaultRowOrder
+    }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(store: store, columns: columns)
+        Coordinator(store: store, columns: columns, defaultRowOrder: defaultRowOrder)
     }
 
     func makeNSView(context: Context) -> NSView {
@@ -61,6 +72,7 @@ struct InspectorJSONLTableView: NSViewRepresentable {
     func updateNSView(_ containerView: NSView, context: Context) {
         context.coordinator.store = store
         context.coordinator.columns = columns
+        context.coordinator.defaultRowOrder = defaultRowOrder
         if let tableView = Self.tableView(in: containerView) {
             applyRowMetrics(to: tableView, coordinator: context.coordinator)
             context.coordinator.applySortDescriptors(tableView.sortDescriptors, tableView: tableView)
@@ -149,18 +161,31 @@ struct InspectorJSONLTableView: NSViewRepresentable {
             let rowCount: Int
         }
 
+        private struct DefaultSortSignature: Equatable {
+            let storeID: ObjectIdentifier
+            let rowCount: Int
+        }
+
         var store: SVPInspectorJSONLStore
         var columns: [InspectorJSONLColumn]
+        var defaultRowOrder: ((SVPInspectorJSONLStore) -> [Int])?
         var defaultRowHeight: CGFloat = 17
         var defaultIntercellSpacing = NSSize(width: 3, height: 2)
+        private var defaultRowIndexes: [Int]?
         private var sortedRowIndexes: [Int]?
         private var sortGeneration = 0
         private var activeSortSignature: SortSignature?
+        private var activeDefaultSortSignature: DefaultSortSignature?
         private let sortQueue = DispatchQueue(label: "com.cueit.svp-system-support.inspector-jsonl-sort", qos: .userInitiated)
 
-        init(store: SVPInspectorJSONLStore, columns: [InspectorJSONLColumn]) {
+        init(
+            store: SVPInspectorJSONLStore,
+            columns: [InspectorJSONLColumn],
+            defaultRowOrder: ((SVPInspectorJSONLStore) -> [Int])?
+        ) {
             self.store = store
             self.columns = columns
+            self.defaultRowOrder = defaultRowOrder
         }
 
         func numberOfRows(in tableView: NSTableView) -> Int {
@@ -201,10 +226,13 @@ struct InspectorJSONLTableView: NSViewRepresentable {
         }
 
         private func sourceRow(for visibleRow: Int) -> Int {
-            guard let sortedRowIndexes, sortedRowIndexes.indices.contains(visibleRow) else {
-                return visibleRow
+            if let sortedRowIndexes, sortedRowIndexes.indices.contains(visibleRow) {
+                return sortedRowIndexes[visibleRow]
             }
-            return sortedRowIndexes[visibleRow]
+            if let defaultRowIndexes, defaultRowIndexes.indices.contains(visibleRow) {
+                return defaultRowIndexes[visibleRow]
+            }
+            return visibleRow
         }
 
         func applySortDescriptors(_ descriptors: [NSSortDescriptor], tableView: NSTableView?) {
@@ -215,8 +243,7 @@ struct InspectorJSONLTableView: NSViewRepresentable {
                   let sortValue = columns[columnIndex].sortValue else {
                 sortedRowIndexes = nil
                 activeSortSignature = nil
-                sortGeneration += 1
-                setSortInProgress(false, tableView: tableView)
+                applyDefaultRowOrder(tableView: tableView)
                 return
             }
 
@@ -232,6 +259,8 @@ struct InspectorJSONLTableView: NSViewRepresentable {
             sortGeneration += 1
             let generation = sortGeneration
             activeSortSignature = signature
+            activeDefaultSortSignature = nil
+            defaultRowIndexes = nil
             sortedRowIndexes = nil
             setSortInProgress(true, tableView: tableView)
 
@@ -255,6 +284,56 @@ struct InspectorJSONLTableView: NSViewRepresentable {
                     tableView?.reloadData()
                 }
             }
+        }
+
+        private func applyDefaultRowOrder(tableView: NSTableView?) {
+            guard let defaultRowOrder else {
+                sortGeneration += 1
+                activeDefaultSortSignature = nil
+                defaultRowIndexes = nil
+                setSortInProgress(false, tableView: tableView)
+                return
+            }
+
+            let signature = DefaultSortSignature(storeID: ObjectIdentifier(store), rowCount: store.rowCount)
+            guard activeDefaultSortSignature != signature else {
+                if defaultRowIndexes != nil {
+                    setSortInProgress(false, tableView: tableView)
+                }
+                return
+            }
+
+            sortGeneration += 1
+            let generation = sortGeneration
+            activeDefaultSortSignature = signature
+            defaultRowIndexes = nil
+            setSortInProgress(true, tableView: tableView)
+
+            let store = store
+            let rowCount = store.rowCount
+            sortQueue.async { [weak self, weak tableView] in
+                let rowIndexes = defaultRowOrder(store)
+                let validatedIndexes = Self.validatedDefaultRowOrder(rowIndexes, rowCount: rowCount)
+
+                DispatchQueue.main.async {
+                    guard let self, self.sortGeneration == generation else { return }
+                    self.defaultRowIndexes = validatedIndexes
+                    self.setSortInProgress(false, tableView: tableView)
+                    tableView?.reloadData()
+                }
+            }
+        }
+
+        private static func validatedDefaultRowOrder(_ rowIndexes: [Int], rowCount: Int) -> [Int]? {
+            guard rowIndexes.count == rowCount else { return nil }
+
+            var seen = Set<Int>()
+            for rowIndex in rowIndexes {
+                guard rowIndex >= 0, rowIndex < rowCount, seen.insert(rowIndex).inserted else {
+                    return nil
+                }
+            }
+            return rowIndexes
         }
 
         private func setSortInProgress(_ isInProgress: Bool, tableView: NSTableView?) {

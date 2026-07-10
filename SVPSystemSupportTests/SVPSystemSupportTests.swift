@@ -176,6 +176,72 @@ final class SVPSystemSupportTests: XCTestCase {
         XCTAssertEqual(inspectorJSONLTempDirectories(), beforeTempDirs)
     }
 
+    func testColorObservationDefaultOrderFollowsTimelineHierarchy() throws {
+        let fixtureURL = repositoryRoot.appendingPathComponent("SVPSystemSupportTests/Resources/SVP-TEST.svp")
+        let store = try SVPInspectorJSONLStore(
+            packageURL: fixtureURL,
+            entryName: "colors/color_observations.jsonl"
+        )
+
+        let rowIndexes = colorObservationAppearanceRowIndexes(for: store)
+
+        XCTAssertEqual(rowIndexes.count, store.rowCount)
+
+        let first = try XCTUnwrap(store.row(at: rowIndexes[0]))
+        XCTAssertEqual(first["target_type"] as? String, "scene")
+        XCTAssertEqual(first["target_id"] as? String, "scene_000001")
+        XCTAssertEqual(first["start_us"] as? Int, 193_333)
+
+        let second = try XCTUnwrap(store.row(at: rowIndexes[1]))
+        XCTAssertEqual(second["target_type"] as? String, "shot")
+        XCTAssertEqual(second["target_id"] as? String, "shot_000001")
+        XCTAssertEqual(second["start_us"] as? Int, 193_333)
+
+        let third = try XCTUnwrap(store.row(at: rowIndexes[2]))
+        XCTAssertEqual(third["target_type"] as? String, "frame")
+        XCTAssertEqual(third["target_id"] as? String, "frame_000001")
+        XCTAssertEqual(third["start_us"] as? Int, 193_333)
+    }
+
+    func testColorObservationDefaultOrderReadsEachRowOnce() {
+        let rows: [[String: Any]] = [
+            ["target_type": "frame", "target_id": "frame_2", "start_us": 2, "end_us": 3],
+            ["target_type": "scene", "target_id": "scene_1", "start_us": 1, "end_us": 4],
+            ["target_type": "shot", "target_id": "shot_1", "start_us": 1, "end_us": 2]
+        ]
+        var readCounts = Array(repeating: 0, count: rows.count)
+
+        let indexes = colorObservationAppearanceRowIndexes(rowCount: rows.count) { index in
+            readCounts[index] += 1
+            return rows[index]
+        }
+
+        XCTAssertEqual(indexes, [1, 2, 0])
+        XCTAssertEqual(readCounts, [1, 1, 1])
+    }
+
+    func testInspectorDefaultRowOrderingRunsOffMainThread() throws {
+        let fixtureURL = repositoryRoot.appendingPathComponent("SVPSystemSupportTests/Resources/SVP-TEST.svp")
+        let store = try SVPInspectorJSONLStore(
+            packageURL: fixtureURL,
+            entryName: "colors/color_observations.jsonl"
+        )
+        let completed = expectation(description: "default ordering completed")
+        let coordinator = InspectorJSONLTableView.Coordinator(
+            store: store,
+            columns: [],
+            defaultRowOrder: { store in
+                XCTAssertFalse(Thread.isMainThread)
+                defer { completed.fulfill() }
+                return Array(0..<store.rowCount)
+            }
+        )
+
+        coordinator.applySortDescriptors([], tableView: nil)
+
+        wait(for: [completed], timeout: 2)
+    }
+
     private func readSource(_ relativePath: String) throws -> String {
         let url = repositoryRoot.appendingPathComponent(relativePath)
         return try String(contentsOf: url, encoding: .utf8)

@@ -40,8 +40,61 @@ struct ColorsDetailView: View {
                     .colorBuckets("Breakdown", key: "bucket_coverage", width: 160),
                     .text("Coverage", key: "coverage_total", width: 80),
                     .text("Quality", key: "quality_score", width: 70)
-                ])
+                ], defaultRowOrder: colorObservationAppearanceRowIndexes)
             }
         }
+    }
+}
+
+func colorObservationAppearanceRowIndexes(for store: SVPInspectorJSONLStore) -> [Int] {
+    colorObservationAppearanceRowIndexes(rowCount: store.rowCount, rowAt: store.row)
+}
+
+func colorObservationAppearanceRowIndexes(
+    rowCount: Int,
+    rowAt: (Int) -> [String: Any]?
+) -> [Int] {
+    (0..<rowCount)
+        .map { rowIndex in
+            let row = rowAt(rowIndex)
+            return ColorObservationAppearanceKey(
+                rowIndex: rowIndex,
+                startUS: colorObservationMicroseconds(row, key: "start_us"),
+                targetRank: colorObservationTargetRank(row?["target_type"] as? String),
+                endUS: colorObservationMicroseconds(row, key: "end_us"),
+                targetID: row?["target_id"] as? String ?? ""
+            )
+        }
+        .sorted()
+        .map(\.rowIndex)
+}
+
+private struct ColorObservationAppearanceKey: Comparable {
+    let rowIndex: Int
+    let startUS: Int64
+    let targetRank: Int
+    let endUS: Int64
+    let targetID: String
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        if lhs.startUS != rhs.startUS { return lhs.startUS < rhs.startUS }
+        if lhs.targetRank != rhs.targetRank { return lhs.targetRank < rhs.targetRank }
+        if lhs.endUS != rhs.endUS { return lhs.endUS < rhs.endUS }
+        if lhs.targetID != rhs.targetID { return lhs.targetID < rhs.targetID }
+        return lhs.rowIndex < rhs.rowIndex
+    }
+}
+
+private func colorObservationMicroseconds(_ row: [String: Any]?, key: String) -> Int64 {
+    guard let number = row?[key] as? NSNumber else { return Int64.max }
+    return number.int64Value
+}
+
+private func colorObservationTargetRank(_ targetType: String?) -> Int {
+    switch targetType {
+    case "scene": 0
+    case "shot": 1
+    case "frame": 2
+    default: 3
     }
 }
