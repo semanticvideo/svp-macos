@@ -161,6 +161,11 @@ struct InspectorJSONLTableView: NSViewRepresentable {
             let rowCount: Int
         }
 
+        private struct DefaultSortSignature: Equatable {
+            let storeID: ObjectIdentifier
+            let rowCount: Int
+        }
+
         var store: SVPInspectorJSONLStore
         var columns: [InspectorJSONLColumn]
         var defaultRowOrder: ((SVPInspectorJSONLStore) -> [Int])?
@@ -170,6 +175,7 @@ struct InspectorJSONLTableView: NSViewRepresentable {
         private var sortedRowIndexes: [Int]?
         private var sortGeneration = 0
         private var activeSortSignature: SortSignature?
+        private var activeDefaultSortSignature: DefaultSortSignature?
         private let sortQueue = DispatchQueue(label: "com.cueit.svp-system-support.inspector-jsonl-sort", qos: .userInitiated)
 
         init(
@@ -236,10 +242,8 @@ struct InspectorJSONLTableView: NSViewRepresentable {
                   columns.indices.contains(columnIndex),
                   let sortValue = columns[columnIndex].sortValue else {
                 sortedRowIndexes = nil
-                defaultRowIndexes = validatedDefaultRowOrder()
                 activeSortSignature = nil
-                sortGeneration += 1
-                setSortInProgress(false, tableView: tableView)
+                applyDefaultRowOrder(tableView: tableView)
                 return
             }
 
@@ -255,6 +259,7 @@ struct InspectorJSONLTableView: NSViewRepresentable {
             sortGeneration += 1
             let generation = sortGeneration
             activeSortSignature = signature
+            activeDefaultSortSignature = nil
             defaultRowIndexes = nil
             sortedRowIndexes = nil
             setSortInProgress(true, tableView: tableView)
@@ -281,13 +286,50 @@ struct InspectorJSONLTableView: NSViewRepresentable {
             }
         }
 
-        private func validatedDefaultRowOrder() -> [Int]? {
-            guard let rowIndexes = defaultRowOrder?(store),
-                  rowIndexes.count == store.rowCount else { return nil }
+        private func applyDefaultRowOrder(tableView: NSTableView?) {
+            guard let defaultRowOrder else {
+                sortGeneration += 1
+                activeDefaultSortSignature = nil
+                defaultRowIndexes = nil
+                setSortInProgress(false, tableView: tableView)
+                return
+            }
+
+            let signature = DefaultSortSignature(storeID: ObjectIdentifier(store), rowCount: store.rowCount)
+            guard activeDefaultSortSignature != signature else {
+                if defaultRowIndexes != nil {
+                    setSortInProgress(false, tableView: tableView)
+                }
+                return
+            }
+
+            sortGeneration += 1
+            let generation = sortGeneration
+            activeDefaultSortSignature = signature
+            defaultRowIndexes = nil
+            setSortInProgress(true, tableView: tableView)
+
+            let store = store
+            let rowCount = store.rowCount
+            sortQueue.async { [weak self, weak tableView] in
+                let rowIndexes = defaultRowOrder(store)
+                let validatedIndexes = Self.validatedDefaultRowOrder(rowIndexes, rowCount: rowCount)
+
+                DispatchQueue.main.async {
+                    guard let self, self.sortGeneration == generation else { return }
+                    self.defaultRowIndexes = validatedIndexes
+                    self.setSortInProgress(false, tableView: tableView)
+                    tableView?.reloadData()
+                }
+            }
+        }
+
+        private static func validatedDefaultRowOrder(_ rowIndexes: [Int], rowCount: Int) -> [Int]? {
+            guard rowIndexes.count == rowCount else { return nil }
 
             var seen = Set<Int>()
             for rowIndex in rowIndexes {
-                guard rowIndex >= 0, rowIndex < store.rowCount, seen.insert(rowIndex).inserted else {
+                guard rowIndex >= 0, rowIndex < rowCount, seen.insert(rowIndex).inserted else {
                     return nil
                 }
             }

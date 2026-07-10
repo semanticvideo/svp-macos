@@ -47,35 +47,41 @@ struct ColorsDetailView: View {
 }
 
 func colorObservationAppearanceRowIndexes(for store: SVPInspectorJSONLStore) -> [Int] {
-    (0..<store.rowCount).sorted { lhs, rhs in
-        let lhsRow = store.row(at: lhs)
-        let rhsRow = store.row(at: rhs)
+    colorObservationAppearanceRowIndexes(rowCount: store.rowCount, rowAt: store.row)
+}
 
-        let lhsStart = colorObservationMicroseconds(lhsRow, key: "start_us")
-        let rhsStart = colorObservationMicroseconds(rhsRow, key: "start_us")
-        if lhsStart != rhsStart {
-            return lhsStart < rhsStart
+func colorObservationAppearanceRowIndexes(
+    rowCount: Int,
+    rowAt: (Int) -> [String: Any]?
+) -> [Int] {
+    (0..<rowCount)
+        .map { rowIndex in
+            let row = rowAt(rowIndex)
+            return ColorObservationAppearanceKey(
+                rowIndex: rowIndex,
+                startUS: colorObservationMicroseconds(row, key: "start_us"),
+                targetRank: colorObservationTargetRank(row?["target_type"] as? String),
+                endUS: colorObservationMicroseconds(row, key: "end_us"),
+                targetID: row?["target_id"] as? String ?? ""
+            )
         }
+        .sorted()
+        .map(\.rowIndex)
+}
 
-        let lhsRank = colorObservationTargetRank(lhsRow?["target_type"] as? String)
-        let rhsRank = colorObservationTargetRank(rhsRow?["target_type"] as? String)
-        if lhsRank != rhsRank {
-            return lhsRank < rhsRank
-        }
+private struct ColorObservationAppearanceKey: Comparable {
+    let rowIndex: Int
+    let startUS: Int64
+    let targetRank: Int
+    let endUS: Int64
+    let targetID: String
 
-        let lhsEnd = colorObservationMicroseconds(lhsRow, key: "end_us")
-        let rhsEnd = colorObservationMicroseconds(rhsRow, key: "end_us")
-        if lhsEnd != rhsEnd {
-            return lhsEnd < rhsEnd
-        }
-
-        let lhsID = lhsRow?["target_id"] as? String ?? ""
-        let rhsID = rhsRow?["target_id"] as? String ?? ""
-        if lhsID != rhsID {
-            return lhsID < rhsID
-        }
-
-        return lhs < rhs
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        if lhs.startUS != rhs.startUS { return lhs.startUS < rhs.startUS }
+        if lhs.targetRank != rhs.targetRank { return lhs.targetRank < rhs.targetRank }
+        if lhs.endUS != rhs.endUS { return lhs.endUS < rhs.endUS }
+        if lhs.targetID != rhs.targetID { return lhs.targetID < rhs.targetID }
+        return lhs.rowIndex < rhs.rowIndex
     }
 }
 
