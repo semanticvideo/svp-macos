@@ -25,6 +25,7 @@ enum EmbeddedSVPIFinderServiceRouter {
             switch action {
             case .transcript: coordinator.showEmbeddedTranscript(package: package)
             case .inspector: coordinator.showEmbeddedInspector(package: package)
+            case .extract: _ = EmbeddedSVPIExtractor().extract(package: package)
             }
         case .noEmbeddedSvpi:
             show(message: "This media does not contain embedded SVPI.")
@@ -35,7 +36,7 @@ enum EmbeddedSVPIFinderServiceRouter {
         }
     }
 
-    enum Action { case transcript, inspector }
+    enum Action { case transcript, inspector, extract }
 
     private static func show(title: String = "Embedded SVPI", message: String) {
         NSApp.activate(ignoringOtherApps: true)

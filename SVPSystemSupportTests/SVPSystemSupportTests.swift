@@ -300,7 +300,7 @@ final class SVPSystemSupportTests: XCTestCase {
         let plist = try XCTUnwrap(Bundle.main.infoDictionary)
         let services = try XCTUnwrap(plist["NSServices"] as? [[String: Any]])
         let required = Set(SVPPasteboardReader.systemMediaUTIs)
-        for title in ["Show Embedded SVPI Transcript", "Embedded SVPI Inspector"] {
+        for title in ["Show Embedded SVPI Transcript", "Extract SVPI from Media", "Embedded SVPI Inspector"] {
             let service = try XCTUnwrap(services.first { (($0["NSMenuItem"] as? [String: String])?["default"]) == title })
             XCTAssertEqual(Set(try XCTUnwrap(service["NSSendFileTypes"] as? [String])), required)
         }
@@ -324,6 +324,25 @@ final class SVPSystemSupportTests: XCTestCase {
             }
         )
         wait(for: [completed], timeout: 2)
+    }
+
+    func testEmbeddedSVPIExtractorWritesTheBoundedPackagePayload() throws {
+        let sourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("embedded-svpi-source-\(UUID().uuidString).svpi")
+        let destinationURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("embedded-svpi-output-\(UUID().uuidString).svpi")
+        defer {
+            try? FileManager.default.removeItem(at: sourceURL)
+            try? FileManager.default.removeItem(at: destinationURL)
+        }
+
+        let expected = Data((0..<257).map { UInt8($0 % 251) })
+        try expected.write(to: sourceURL)
+        let package = try SVPPackageDescriptor.standalone(url: sourceURL)
+
+        try EmbeddedSVPIExtractor.write(package: package, to: destinationURL, bufferSize: 17)
+
+        XCTAssertEqual(try Data(contentsOf: destinationURL), expected)
     }
 
     func testRealEmbeddedDescriptorFeedsEveryLazyInspectorSection() throws {
