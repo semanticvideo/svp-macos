@@ -296,13 +296,20 @@ final class SVPSystemSupportTests: XCTestCase {
         return Set(names.filter { $0.hasPrefix("svp-inspector-jsonl-") })
     }
 
-    func testEmbeddedFinderServicesAdvertiseEverySystemMediaUTI() throws {
+    func testEmbeddedFinderServicesUseStableMessagesAndSupportedUTIs() throws {
         let plist = try XCTUnwrap(Bundle.main.infoDictionary)
         let services = try XCTUnwrap(plist["NSServices"] as? [[String: Any]])
         let required = Set(SVPPasteboardReader.systemMediaUTIs)
-        for title in ["Show Embedded SVPI Transcript", "Extract SVPI from Media", "Embedded SVPI Inspector"] {
-            let service = try XCTUnwrap(services.first { (($0["NSMenuItem"] as? [String: String])?["default"]) == title })
+        let app = SVPSystemSupportApp()
+        let serviceSelectors = [
+            ("showEmbeddedSVPITranscriptService", #selector(SVPSystemSupportApp.showEmbeddedSVPITranscriptService(_:userData:error:))),
+            ("extractEmbeddedSVPIService", #selector(SVPSystemSupportApp.extractEmbeddedSVPIService(_:userData:error:))),
+            ("inspectEmbeddedSVPIService", #selector(SVPSystemSupportApp.inspectEmbeddedSVPIService(_:userData:error:)))
+        ]
+        for (message, selector) in serviceSelectors {
+            let service = try XCTUnwrap(services.first { ($0["NSMessage"] as? String) == message })
             XCTAssertEqual(Set(try XCTUnwrap(service["NSSendFileTypes"] as? [String])), required)
+            XCTAssertTrue(app.responds(to: selector))
         }
         XCTAssertEqual(required, Set(["public.mpeg-4", "com.apple.quicktime-movie", "com.apple.m4v-video", "public.mpeg-4-audio", "com.apple.m4a-audio"]))
     }
@@ -328,7 +335,7 @@ final class SVPSystemSupportTests: XCTestCase {
 
     func testEmbeddedSVPIExtractorWritesTheBoundedPackagePayload() throws {
         let sourceURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("embedded-svpi-source-\(UUID().uuidString).svpi")
+            .appendingPathComponent("embedded-svpi-container-\(UUID().uuidString).mp4")
         let destinationURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("embedded-svpi-output-\(UUID().uuidString).svpi")
         defer {
@@ -336,13 +343,61 @@ final class SVPSystemSupportTests: XCTestCase {
             try? FileManager.default.removeItem(at: destinationURL)
         }
 
+        let prefix = Data(repeating: 0xAA, count: 31)
         let expected = Data((0..<257).map { UInt8($0 % 251) })
-        try expected.write(to: sourceURL)
-        let package = try SVPPackageDescriptor.standalone(url: sourceURL)
+        let suffix = Data(repeating: 0xBB, count: 29)
+        try (prefix + expected + suffix).write(to: sourceURL)
+        try Data("previous destination".utf8).write(to: destinationURL)
+        let fileSource = try FilePackageByteSource(url: sourceURL)
+        let boundedSource = try BoundedPackageByteSource(
+            source: fileSource,
+            baseOffset: UInt64(prefix.count),
+            length: UInt64(expected.count)
+        )
 
-        try EmbeddedSVPIExtractor.write(package: package, to: destinationURL, bufferSize: 17)
+        try EmbeddedSVPIExtractor.write(
+            source: boundedSource,
+            sourceMediaURL: sourceURL,
+            to: destinationURL,
+            bufferSize: 17
+        )
 
         XCTAssertEqual(try Data(contentsOf: destinationURL), expected)
+    }
+
+    func testEmbeddedSVPIExtractorPreservesExistingDestinationWhenReadFails() throws {
+        let destinationURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("embedded-svpi-existing-\(UUID().uuidString).svpi")
+        defer { try? FileManager.default.removeItem(at: destinationURL) }
+
+        let existingData = Data("existing".utf8)
+        try existingData.write(to: destinationURL)
+
+        XCTAssertThrowsError(try EmbeddedSVPIExtractor.write(
+            source: FailingPackageByteSource(),
+            sourceMediaURL: destinationURL.appendingPathExtension("source"),
+            to: destinationURL,
+            bufferSize: 1
+        ))
+        XCTAssertEqual(try Data(contentsOf: destinationURL), existingData)
+    }
+
+    func testEmbeddedSVPIExtractorRejectsSourceMediaAsDestination() throws {
+        let sourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("embedded-svpi-source-\(UUID().uuidString).mp4")
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+
+        let sourceData = Data("source media".utf8)
+        try sourceData.write(to: sourceURL)
+        let source = try FilePackageByteSource(url: sourceURL)
+
+        XCTAssertThrowsError(try EmbeddedSVPIExtractor.write(
+            source: source,
+            sourceMediaURL: sourceURL,
+            to: sourceURL,
+            bufferSize: 1
+        ))
+        XCTAssertEqual(try Data(contentsOf: sourceURL), sourceData)
     }
 
     func testRealEmbeddedDescriptorFeedsEveryLazyInspectorSection() throws {
@@ -382,5 +437,13 @@ final class SVPSystemSupportTests: XCTestCase {
 
         transcriptPresenter.close(window: transcriptWindow)
         inspector.close()
+    }
+}
+
+private struct FailingPackageByteSource: SVPPackageByteSource {
+    let length: UInt64 = 1
+
+    func read(offset: UInt64, length: Int) throws -> Data {
+        throw CocoaError(.fileReadUnknown)
     }
 }
