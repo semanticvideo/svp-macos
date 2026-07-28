@@ -45,24 +45,38 @@ final class EmbeddedSVPIExtractor {
         to destinationURL: URL,
         bufferSize: Int = 1_048_576
     ) throws {
+        try write(
+            source: package.source,
+            sourceMediaURL: package.mediaURL,
+            to: destinationURL,
+            bufferSize: bufferSize
+        )
+    }
+
+    static func write(
+        source: any SVPPackageByteSource,
+        sourceMediaURL: URL,
+        to destinationURL: URL,
+        bufferSize: Int
+    ) throws {
         guard bufferSize > 0 else { throw EmbeddedSVPIExtractorError.invalidBufferSize }
-        guard FileManager.default.createFile(atPath: destinationURL.path, contents: nil) else {
+        guard !pointsToSameFile(sourceMediaURL, destinationURL) else {
+            throw EmbeddedSVPIExtractorError.destinationMatchesSource
+        }
+
+        let temporaryURL = destinationURL.deletingLastPathComponent()
+            .appendingPathComponent(".\(destinationURL.lastPathComponent).\(UUID().uuidString).tmp")
+        guard FileManager.default.createFile(atPath: temporaryURL.path, contents: nil) else {
             throw EmbeddedSVPIExtractorError.cannotCreateDestination(destinationURL)
         }
+        defer { try? FileManager.default.removeItem(at: temporaryURL) }
 
-        let output: FileHandle
-        do {
-            output = try FileHandle(forWritingTo: destinationURL)
-        } catch {
-            try? FileManager.default.removeItem(at: destinationURL)
-            throw error
-        }
-
+        let output = try FileHandle(forWritingTo: temporaryURL)
         do {
             var offset: UInt64 = 0
-            while offset < package.source.length {
-                let count = Int(min(UInt64(bufferSize), package.source.length - offset))
-                let data = try package.source.read(offset: offset, length: count)
+            while offset < source.length {
+                let count = Int(min(UInt64(bufferSize), source.length - offset))
+                let data = try source.read(offset: offset, length: count)
                 guard !data.isEmpty else { throw EmbeddedSVPIExtractorError.unexpectedEndOfSource }
                 try output.write(contentsOf: data)
                 offset += UInt64(data.count)
@@ -70,15 +84,34 @@ final class EmbeddedSVPIExtractor {
             try output.close()
         } catch {
             try? output.close()
-            try? FileManager.default.removeItem(at: destinationURL)
             throw error
         }
+
+        if FileManager.default.fileExists(atPath: destinationURL.path) {
+            _ = try FileManager.default.replaceItemAt(destinationURL, withItemAt: temporaryURL)
+        } else {
+            try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
+        }
+    }
+
+    private static func pointsToSameFile(_ lhs: URL, _ rhs: URL) -> Bool {
+        let lhs = lhs.standardizedFileURL.resolvingSymlinksInPath()
+        let rhs = rhs.standardizedFileURL.resolvingSymlinksInPath()
+        if lhs == rhs { return true }
+
+        let keys: Set<URLResourceKey> = [.fileResourceIdentifierKey]
+        guard
+            let lhsID = try? lhs.resourceValues(forKeys: keys).fileResourceIdentifier as? NSObject,
+            let rhsID = try? rhs.resourceValues(forKeys: keys).fileResourceIdentifier as? NSObject
+        else { return false }
+        return lhsID.isEqual(rhsID)
     }
 }
 
 private enum EmbeddedSVPIExtractorError: LocalizedError {
     case invalidBufferSize
     case cannotCreateDestination(URL)
+    case destinationMatchesSource
     case unexpectedEndOfSource
 
     var errorDescription: String? {
@@ -87,6 +120,8 @@ private enum EmbeddedSVPIExtractorError: LocalizedError {
             return "The extraction buffer size is invalid."
         case .cannotCreateDestination(let url):
             return "The destination file could not be created at \(url.path)."
+        case .destinationMatchesSource:
+            return "The embedded SVPI cannot replace its source media file."
         case .unexpectedEndOfSource:
             return "The embedded SVPI payload ended before extraction completed."
         }
