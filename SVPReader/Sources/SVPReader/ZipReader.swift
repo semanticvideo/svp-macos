@@ -89,14 +89,27 @@ final class ZipReader {
         guard let entry = entryMap[name] else {
             throw ZipReaderError.entryNotFound(name)
         }
-        try extractEntryData(entry: entry, to: destinationURL, bufferSize: bufferSize)
+        guard bufferSize > 0 else {
+            throw ZipReaderError.readFailed("ZIP extraction buffer size must be greater than zero")
+        }
+
+        let temporaryURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("svp-extraction-\(UUID().uuidString).tmp")
+        defer { try? FileManager.default.removeItem(at: temporaryURL) }
+
+        try extractEntryData(entry: entry, to: temporaryURL, bufferSize: bufferSize)
+        if FileManager.default.fileExists(atPath: destinationURL.path) {
+            _ = try FileManager.default.replaceItemAt(destinationURL, withItemAt: temporaryURL)
+        } else {
+            try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
+        }
     }
 
     func entryDataOffset(_ name: String) throws -> UInt64 {
         guard let entry = entryMap[name] else {
             throw ZipReaderError.entryNotFound(name)
         }
-        let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
+        let localHeader = try readLocalHeader(for: entry)
         return try checkedAdd(entry.localHeaderOffset, localHeader.dataOffset)
     }
 
@@ -112,30 +125,32 @@ final class ZipReader {
     }
 
     private func readEntryData(entry: ZipCentralDirEntry) throws -> Data {
-        let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
+        let localHeader = try readLocalHeader(for: entry)
 
         let dataOffset = try checkedAdd(entry.localHeaderOffset, localHeader.dataOffset)
 
         if entry.compressionMethod == 0 {
-            let size = resolveSize(local: localHeader, central: entry)
+            let size = entry.uncompressedSize
             guard size <= UInt64(Int.max) else { throw ZipReaderError.readFailed("Entry is too large") }
             let data = try source.read(offset: dataOffset, length: Int(size))
+            var integrity = ZipEntryIntegrity(entry: entry)
+            try integrity.consume(data)
+            try integrity.validate()
             return data
         } else if entry.compressionMethod == 8 {
-            let compressedSize = resolveCompressedSize(local: localHeader, central: entry)
+            let compressedSize = entry.compressedSize
             guard compressedSize <= UInt64(Int.max) else { throw ZipReaderError.readFailed("Compressed entry is too large") }
             let compressedData = try source.read(offset: dataOffset, length: Int(compressedSize))
-            return try Self.inflate(data: compressedData, expectedSize: entry.uncompressedSize)
+            return try Self.inflate(data: compressedData, entry: entry)
         } else {
             throw ZipReaderError.readFailed("Unsupported compression method: \(entry.compressionMethod)")
         }
     }
 
     private func extractEntryData(entry: ZipCentralDirEntry, to destinationURL: URL, bufferSize: Int) throws {
-        let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
+        let localHeader = try readLocalHeader(for: entry)
         let dataOffset = try checkedAdd(entry.localHeaderOffset, localHeader.dataOffset)
 
-        try? FileManager.default.removeItem(at: destinationURL)
         guard FileManager.default.createFile(atPath: destinationURL.path, contents: nil) else {
             throw ZipReaderError.readFailed("Cannot create destination: \(destinationURL.path)")
         }
@@ -146,30 +161,59 @@ final class ZipReader {
             try? outputHandle.close()
         }
 
+        var integrity = ZipEntryIntegrity(entry: entry)
         if entry.compressionMethod == 0 {
-            let size = resolveSize(local: localHeader, central: entry)
-            try copyStoredEntry(offset: dataOffset, byteCount: size, to: outputHandle, bufferSize: bufferSize)
+            try copyStoredEntry(
+                offset: dataOffset,
+                byteCount: entry.uncompressedSize,
+                to: outputHandle,
+                bufferSize: bufferSize,
+                integrity: &integrity
+            )
+            try integrity.validate()
         } else if entry.compressionMethod == 8 {
-            let compressedSize = resolveCompressedSize(local: localHeader, central: entry)
-            try inflateEntry(offset: dataOffset, compressedByteCount: compressedSize, to: outputHandle, bufferSize: bufferSize)
+            let streamEnded = try inflateEntry(
+                offset: dataOffset,
+                compressedByteCount: entry.compressedSize,
+                to: outputHandle,
+                bufferSize: bufferSize,
+                integrity: &integrity
+            )
+            try integrity.validate(streamEnded: streamEnded)
         } else {
             throw ZipReaderError.readFailed("Unsupported compression method: \(entry.compressionMethod)")
         }
     }
 
-    private func copyStoredEntry(offset: UInt64, byteCount: UInt64, to outputHandle: FileHandle, bufferSize: Int) throws {
+    private func copyStoredEntry(
+        offset: UInt64,
+        byteCount: UInt64,
+        to outputHandle: FileHandle,
+        bufferSize: Int,
+        integrity: inout ZipEntryIntegrity
+    ) throws {
         var remaining = byteCount
         var position = offset
         while remaining > 0 {
             let toRead = Int(min(UInt64(bufferSize), remaining))
             let chunk = try source.read(offset: position, length: toRead)
-            outputHandle.write(chunk)
+            guard !chunk.isEmpty else {
+                throw ZipReaderError.readFailed("ZIP entry ended before its declared size")
+            }
+            try integrity.consume(chunk)
+            try outputHandle.write(contentsOf: chunk)
             remaining -= UInt64(chunk.count)
             position = try checkedAdd(position, UInt64(chunk.count))
         }
     }
 
-    private func inflateEntry(offset: UInt64, compressedByteCount: UInt64, to outputHandle: FileHandle, bufferSize: Int) throws {
+    private func inflateEntry(
+        offset: UInt64,
+        compressedByteCount: UInt64,
+        to outputHandle: FileHandle,
+        bufferSize: Int,
+        integrity: inout ZipEntryIntegrity
+    ) throws -> Bool {
         let stream = cZlib_inflate_init()
         guard stream != nil else {
             throw ZipReaderError.inflateFailed("inflate init failed")
@@ -181,13 +225,17 @@ final class ZipReader {
         var remaining = compressedByteCount
         var position = offset
         var outputBuffer = [UInt8](repeating: 0, count: outputChunkSize)
+        var streamEnded = false
 
-        while remaining > 0 {
+        while remaining > 0, !streamEnded {
             let toRead = Int(min(UInt64(inputChunkSize), remaining))
             let chunk = try source.read(offset: position, length: toRead)
+            guard !chunk.isEmpty else {
+                throw ZipReaderError.inflateFailed("Compressed ZIP entry ended before its declared size")
+            }
 
             var inputOffset = 0
-            while inputOffset < chunk.count {
+            while inputOffset < chunk.count, !streamEnded {
                 var consumed = 0
                 var produced = 0
 
@@ -210,19 +258,30 @@ final class ZipReader {
                 }
 
                 if produced > 0 {
-                    outputHandle.write(Data(outputBuffer[0..<produced]))
+                    let output = Data(outputBuffer[0..<produced])
+                    try integrity.consume(output)
+                    try outputHandle.write(contentsOf: output)
                 }
 
                 inputOffset += consumed
 
+                if result == 1 {
+                    streamEnded = true
+                    guard inputOffset == chunk.count, remaining == UInt64(chunk.count) else {
+                        throw ZipReaderError.inflateFailed("Deflate stream contains trailing compressed data")
+                    }
+                }
+
                 if consumed == 0 && produced == 0 {
-                    break
+                    throw ZipReaderError.inflateFailed("Deflate stream made no progress")
                 }
             }
 
             remaining -= UInt64(chunk.count)
             position = try checkedAdd(position, UInt64(chunk.count))
         }
+
+        return streamEnded
     }
 
     private func storedEntryRangeInfo(_ name: String) throws -> StoredEntryRangeInfo {
@@ -240,10 +299,10 @@ final class ZipReader {
             throw ZipReaderError.readFailed("Cannot read byte ranges from compressed entry: \(name)")
         }
 
-        let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
+        let localHeader = try readLocalHeader(for: entry)
         let rangeInfo = StoredEntryRangeInfo(
             dataOffset: try checkedAdd(entry.localHeaderOffset, localHeader.dataOffset),
-            size: resolveSize(local: localHeader, central: entry)
+            size: entry.uncompressedSize
         )
 
         storedEntryRangeInfoCache[name] = rangeInfo
@@ -251,15 +310,14 @@ final class ZipReader {
         return rangeInfo
     }
 
-
-    private func resolveSize(local: ZipLocalHeader, central: ZipCentralDirEntry) -> UInt64 {
-        if local.uncompressedSize != 0, local.uncompressedSize != UInt64(UInt32.max) { return local.uncompressedSize }
-        return central.uncompressedSize
-    }
-
-    private func resolveCompressedSize(local: ZipLocalHeader, central: ZipCentralDirEntry) -> UInt64 {
-        if local.compressedSize != 0, local.compressedSize != UInt64(UInt32.max) { return local.compressedSize }
-        return central.compressedSize
+    private func readLocalHeader(for entry: ZipCentralDirEntry) throws -> ZipLocalHeader {
+        let localHeader = try readLocalHeader(offset: entry.localHeaderOffset)
+        guard localHeader.compressionMethod == entry.compressionMethod else {
+            throw ZipReaderError.readFailed(
+                "ZIP local and central compression methods disagree: \(entry.fileName)"
+            )
+        }
+        return localHeader
     }
 
     private func readLocalHeader(offset: UInt64) throws -> ZipLocalHeader {
@@ -505,10 +563,10 @@ final class ZipReader {
         return sum
     }
 
-    static func inflate(data: Data, expectedSize: UInt64) throws -> Data {
+    static func inflate(data: Data, entry: ZipCentralDirEntry) throws -> Data {
         var output = Data()
-        if expectedSize > 0 && expectedSize < 512 * 1024 * 1024 {
-            output.reserveCapacity(Int(expectedSize))
+        if entry.uncompressedSize > 0 && entry.uncompressedSize < 512 * 1024 * 1024 {
+            output.reserveCapacity(Int(entry.uncompressedSize))
         }
 
         let stream = cZlib_inflate_init()
@@ -522,6 +580,7 @@ final class ZipReader {
         var inputOffset = 0
         let inputTotal = data.count
         var done = false
+        var integrity = ZipEntryIntegrity(entry: entry)
 
         while !done && inputOffset < inputTotal {
             let remaining = inputTotal - inputOffset
@@ -548,7 +607,9 @@ final class ZipReader {
             }
 
             if produced > 0 {
-                output.append(contentsOf: outputBuffer[0..<produced])
+                let chunk = Data(outputBuffer[0..<produced])
+                try integrity.consume(chunk)
+                output.append(chunk)
             }
 
             inputOffset += consumed
@@ -558,10 +619,14 @@ final class ZipReader {
             }
 
             if consumed == 0 && produced == 0 {
-                break
+                throw ZipReaderError.inflateFailed("Deflate stream made no progress")
             }
         }
 
+        guard inputOffset == inputTotal else {
+            throw ZipReaderError.inflateFailed("Deflate stream contains trailing compressed data")
+        }
+        try integrity.validate(streamEnded: done)
         return output
     }
 }
