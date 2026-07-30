@@ -67,7 +67,9 @@ public final class SVPReader: @unchecked Sendable {
         let svpVersion = json["svp_version"] as? String ?? ""
         let packageID = json["package_id"] as? String ?? ""
         let createdUTC = json["created_utc"] as? String ?? ""
-        let primaryMediaID = json["primary_media_id"] as? String ?? ""
+        let primaryMediaID = json["primary_media_id"] as? String
+        let primaryMediaBindingID = json["primary_media_binding_id"] as? String
+        let resolvedPrimaryMediaID = primaryMediaBindingID.flatMap(resolvePrimaryMediaID)
 
         var timebaseUnit = ""
         var timebaseOrigin = ""
@@ -81,9 +83,24 @@ public final class SVPReader: @unchecked Sendable {
             packageID: packageID,
             createdUTC: createdUTC,
             primaryMediaID: primaryMediaID,
+            primaryMediaBindingID: primaryMediaBindingID,
+            resolvedPrimaryMediaID: resolvedPrimaryMediaID,
             timebaseUnit: timebaseUnit,
             timebaseOrigin: timebaseOrigin
         )
+    }
+
+    private func resolvePrimaryMediaID(bindingID: String) -> String? {
+        guard zipReader.hasEntry("media_binding.json"),
+              let data = try? zipReader.readEntry("media_binding.json"),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let bindings = json["bindings"] as? [[String: Any]],
+              let primaryBinding = bindings.first(where: { $0["binding_id"] as? String == bindingID })
+        else {
+            return nil
+        }
+
+        return primaryBinding["media_id"] as? String
     }
 
     public func locatePrimaryMediaAsset() throws -> SVPMediaInfo {

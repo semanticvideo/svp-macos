@@ -49,7 +49,9 @@ public struct SVPManifestInfo: Sendable {
     public let svpVersion: String
     public let packageID: String
     public let createdUTC: String
-    public let primaryMediaID: String
+    public let primaryMediaID: String?
+    public let primaryMediaBindingID: String?
+    public let resolvedPrimaryMediaID: String?
     public let timebaseUnit: String
     public let timebaseOrigin: String
 }

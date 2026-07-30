@@ -28,7 +28,14 @@ struct OverviewDetailView: View {
                         infoRow("SVP Version", m.svpVersion)
                         infoRow("Package ID", m.packageID)
                         infoRow("Created UTC", m.createdUTC)
-                        infoRow("Primary Media ID", m.primaryMediaID)
+                        if let primaryMediaBindingID = m.primaryMediaBindingID {
+                            if let resolvedPrimaryMediaID = m.resolvedPrimaryMediaID {
+                                infoRow("Resolved Primary Media ID", resolvedPrimaryMediaID)
+                            }
+                            infoRow("Primary Media Binding ID", primaryMediaBindingID)
+                        } else if let primaryMediaID = m.primaryMediaID {
+                            infoRow("Primary Media ID", primaryMediaID)
+                        }
                         infoRow("Timebase Unit", m.timebaseUnit)
                         infoRow("Timebase Origin", m.timebaseOrigin)
                     }
