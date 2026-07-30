@@ -64,8 +64,8 @@ final class EmbeddedSVPIExtractor {
             throw EmbeddedSVPIExtractorError.destinationMatchesSource
         }
 
-        let temporaryURL = destinationURL.deletingLastPathComponent()
-            .appendingPathComponent(".\(destinationURL.lastPathComponent).\(UUID().uuidString).tmp")
+        let temporaryURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("svp-embedded-svpi-extraction-\(UUID().uuidString).tmp")
         guard FileManager.default.createFile(atPath: temporaryURL.path, contents: nil) else {
             throw EmbeddedSVPIExtractorError.cannotCreateDestination(destinationURL)
         }
