@@ -15,4 +15,6 @@ int cZlib_inflate_process(cZlib_stream *stream,
 
 void cZlib_inflate_end(cZlib_stream *stream);
 
+uint32_t cZlib_crc32(uint32_t checksum, const uint8_t *bytes, size_t length);
+
 #endif

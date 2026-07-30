@@ -15,9 +15,6 @@ final class SVPVideoExtractor {
             try reader.validateSVP()
 
             let mediaInfo = try reader.locatePrimaryMediaAsset()
-            let mediaData = try reader.readMediaData(mediaInfo)
-            SVPAppLogger.log("App loaded media data: \(mediaData.count) bytes")
-
             let baseName = svpURL.deletingPathExtension().lastPathComponent
             let defaultFileName = "\(baseName).\(mediaInfo.fileExtension)"
 
@@ -34,7 +31,7 @@ final class SVPVideoExtractor {
                 return .cancelled
             }
 
-            try mediaData.write(to: destURL)
+            try reader.extractMediaData(mediaInfo, to: destURL)
             SVPAppLogger.log("App wrote extracted video to: \(destURL.path)")
 
             NSWorkspace.shared.activateFileViewerSelecting([destURL])

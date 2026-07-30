@@ -1,4 +1,5 @@
 import Foundation
+import CZlib
 import XCTest
 @testable import SVPReader
 
@@ -54,12 +55,15 @@ private func makeCentralDirectoryOnlyArchive(names: [String]) -> Data {
 
 private func makeZIP64Archive(name: String, payload: Data) -> Data {
     let nameData = Data(name.utf8)
+    let checksum = payload.withUnsafeBytes { bytes in
+        cZlib_crc32(0, bytes.bindMemory(to: UInt8.self).baseAddress, payload.count)
+    }
     let localZIP64Data = le64(UInt64(payload.count)) + le64(UInt64(payload.count))
     let localExtra = le16(0x0001) + le16(UInt16(localZIP64Data.count)) + localZIP64Data
 
     var archive = Data()
     archive += le32(0x04034b50) + le16(45) + le16(0) + le16(0)
-    archive += le16(0) + le16(0) + le32(0) + le32(UInt32.max) + le32(UInt32.max)
+    archive += le16(0) + le16(0) + le32(checksum) + le32(UInt32.max) + le32(UInt32.max)
     archive += le16(UInt16(nameData.count)) + le16(UInt16(localExtra.count))
     archive += nameData + localExtra + payload
 
@@ -68,7 +72,7 @@ private func makeZIP64Archive(name: String, payload: Data) -> Data {
     let centralExtra = le16(0x0001) + le16(UInt16(centralZIP64Data.count)) + centralZIP64Data
     var centralDirectory = Data()
     centralDirectory += le32(0x02014b50) + le16(45) + le16(45) + le16(0) + le16(0)
-    centralDirectory += le16(0) + le16(0) + le32(0) + le32(UInt32.max) + le32(UInt32.max)
+    centralDirectory += le16(0) + le16(0) + le32(checksum) + le32(UInt32.max) + le32(UInt32.max)
     centralDirectory += le16(UInt16(nameData.count)) + le16(UInt16(centralExtra.count)) + le16(0)
     centralDirectory += le16(0) + le16(0) + le32(0) + le32(UInt32.max)
     centralDirectory += nameData + centralExtra

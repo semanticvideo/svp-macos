@@ -1,4 +1,5 @@
 #include "CZlib.h"
+#include <limits.h>
 #include <zlib.h>
 #include <stdlib.h>
 
@@ -49,4 +50,14 @@ void cZlib_inflate_end(cZlib_stream *s) {
         if (s->initialized) inflateEnd(&s->zs);
         free(s);
     }
+}
+
+uint32_t cZlib_crc32(uint32_t checksum, const uint8_t *bytes, size_t length) {
+    while (length > 0) {
+        uInt chunk = length > UINT_MAX ? UINT_MAX : (uInt)length;
+        checksum = (uint32_t)crc32(checksum, bytes, chunk);
+        bytes += chunk;
+        length -= chunk;
+    }
+    return checksum;
 }
