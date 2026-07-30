@@ -452,4 +452,4 @@ Each line should be valid JSON with a string `text` field.
 
 ## License
 
-No license file is currently included in this repository.
+SVP System Support is licensed under the [Apache License 2.0](LICENSE).
