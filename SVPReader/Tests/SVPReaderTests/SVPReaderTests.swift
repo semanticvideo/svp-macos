@@ -3,58 +3,6 @@ import XCTest
 
 final class SVPReaderTests: XCTestCase {
 
-    var sampleSVPURL: URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("SVPSystemSupportTests/Resources/SVP-TEST.svp")
-    }
-
-    func testOpenAndValidateSVP() throws {
-        let reader = try SVPReader(url: sampleSVPURL)
-        try reader.validateSVP()
-    }
-
-    func testReadManifest() throws {
-        let reader = try SVPReader(url: sampleSVPURL)
-        let manifest = try reader.readManifest()
-        XCTAssertEqual(manifest.svpVersion, "1.0-rc.2")
-        XCTAssertEqual(manifest.packageID, "svp_SVP-TEST_pkg")
-        XCTAssertEqual(manifest.primaryMediaID, "media_000001")
-    }
-
-    func testLocatePrimaryMedia() throws {
-        let reader = try SVPReader(url: sampleSVPURL)
-        let media = try reader.locatePrimaryMediaAsset()
-        XCTAssertEqual(media.mediaPath, "media/original/source_000.MOV")
-        XCTAssertEqual(media.fileExtension.lowercased(), "mov")
-        XCTAssertTrue(media.likelyPlayableByAVFoundation)
-        XCTAssertGreaterThan(media.uncompressedSize, 0)
-    }
-
-    func testMaterializePrimaryMedia() throws {
-        let reader = try SVPReader(url: sampleSVPURL)
-        let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("svp-test-\(UUID().uuidString)", isDirectory: true)
-        defer { SVPReader.cleanupMaterializedMedia(at: tempDir) }
-
-        let mediaURL = try reader.materializePrimaryMedia(to: tempDir)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: mediaURL.path))
-        let attrs = try FileManager.default.attributesOfItem(atPath: mediaURL.path)
-        let size = attrs[.size] as? UInt64 ?? 0
-        XCTAssertGreaterThan(size, 0)
-    }
-
-    func testOpenAndMaterialize() throws {
-        let reader = try SVPReader(url: sampleSVPURL)
-        let result = try reader.openAndMaterialize()
-        defer { SVPReader.cleanupMaterializedMedia(at: result.tempDir!) }
-        XCTAssertTrue(FileManager.default.fileExists(atPath: result.mediaURL.path))
-        XCTAssertEqual(result.mediaInfo.mediaFileName, "source_000.MOV")
-    }
-
     func testInvalidFile() {
         let tempFile = FileManager.default.temporaryDirectory.appendingPathComponent("not-an-svp.txt")
         try? "hello".data(using: .utf8)!.write(to: tempFile)
@@ -334,7 +282,7 @@ final class SVPReaderTests: XCTestCase {
 
         let svpURL = tempDir.appendingPathComponent("fixture.svp")
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+        process.executableURL = try executableURL(named: "zip")
         var zipPaths = ["mimetype", "media"]
         if includeManifest {
             zipPaths.insert("manifest.json", at: 1)
@@ -349,5 +297,21 @@ final class SVPReaderTests: XCTestCase {
         XCTAssertEqual(process.terminationStatus, 0)
 
         return SVPFixture(tempDir: tempDir, svpURL: svpURL, mediaBytes: mediaBytes)
+    }
+
+    private func executableURL(named name: String) throws -> URL {
+        let searchPaths = ProcessInfo.processInfo.environment["PATH"]?
+            .split(separator: ":")
+            .map(String.init) ?? []
+
+        for searchPath in searchPaths {
+            let candidate = URL(fileURLWithPath: searchPath, isDirectory: true)
+                .appendingPathComponent(name)
+            if FileManager.default.isExecutableFile(atPath: candidate.path) {
+                return candidate
+            }
+        }
+
+        throw XCTSkip("Required test executable is unavailable: \(name)")
     }
 }

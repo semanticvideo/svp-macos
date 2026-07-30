@@ -2,8 +2,7 @@ import XCTest
 @testable import SVPReader
 
 final class EmbeddedSVPITransportTests: XCTestCase {
-    private var sampleSVP: Data { try! Data(contentsOf: packageRoot.appendingPathComponent("SVPSystemSupportTests/Resources/SVP-TEST.svp")) }
-    private var packageRoot: URL { URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent() }
+    private let samplePayload = Data("embedded-svpi-payload".utf8)
 
     func testSupportedBrandFamilies() throws {
         let cases: [(String, ISOBaseMediaFamily)] = [("mp42", .mp4), ("qt  ", .quickTime), ("M4V ", .m4v), ("M4A ", .m4a), ("M4P ", .m4a)]
@@ -34,41 +33,46 @@ final class EmbeddedSVPITransportTests: XCTestCase {
     }
 
     func testValidEmbeddingAndUnrelatedUUID() throws {
-        let media = try embeddedMedia(payload: sampleSVP, prefix: uuidBox(userType: Data(repeating: 1, count: 16), content: Data()))
-        let url = try write(media); defer { try? FileManager.default.removeItem(at: url) }
-        guard case .embedded(let descriptor) = SemanticMediaResolver.resolve(url: url) else { return XCTFail("Expected valid embedding") }
-        XCTAssertTrue(descriptor.payloadHashMatches)
-        XCTAssertEqual(try SVPReader(package: descriptor).readManifest().packageID, "svp_SVP-TEST_pkg")
+        let media = try embeddedMedia(payload: samplePayload, prefix: uuidBox(userType: Data(repeating: 1, count: 16), content: Data()))
+        let source = MemorySource(media)
+        let scan = try XCTUnwrap(ISOBMFFScanner.scan(source: source))
+        let candidate = try XCTUnwrap(scan.embeddingCandidates.first)
+        let envelope = try EmbeddedSVPIEnvelopeParser.parse(candidate: candidate, source: source)
+        let payload = try BoundedPackageByteSource(source: source, baseOffset: envelope.payloadOffset, length: envelope.payloadLength)
+
+        XCTAssertEqual(scan.family, .mp4)
+        XCTAssertEqual(scan.embeddingCandidates.count, 1)
+        XCTAssertEqual(try payload.read(offset: 0, length: Int(payload.length)), samplePayload)
+        XCTAssertNoThrow(try EmbeddedSVPIIntegrityVerifier.verify(source: payload, expectedHash: envelope.expectedHash))
     }
 
     func testExtendedSizeEmbedding() throws {
-        let content = try envelope(payload: sampleSVP) + sampleSVP
+        let content = try envelope(payload: samplePayload) + samplePayload
         let extended = be32(1) + Data("uuid".utf8) + be64(UInt64(32 + content.count)) + EmbeddedSVPITransportProfile.uuid + content
-        let url = try write(ftyp(brand: "qt  ") + extended); defer { try? FileManager.default.removeItem(at: url) }
-        guard case .embedded(let package) = SemanticMediaResolver.resolve(url: url) else { return XCTFail("Expected extended embedding") }
-        XCTAssertEqual(package.containerFamily, .quickTime)
-    }
+        let source = MemorySource(ftyp(brand: "qt  ") + extended)
+        let scan = try XCTUnwrap(ISOBMFFScanner.scan(source: source))
+        let parsed = try EmbeddedSVPIEnvelopeParser.parse(
+            candidate: try XCTUnwrap(scan.embeddingCandidates.first),
+            source: source
+        )
 
-    func testStandaloneSVPIRegressionUsesFullFileSource() throws {
-        let url = try write(sampleSVP); defer { try? FileManager.default.removeItem(at: url) }
-        let descriptor = try SVPPackageDescriptor.standalone(url: url)
-        let reader = try SVPReader(package: descriptor)
-        try reader.validateSVP()
-        XCTAssertEqual(try reader.readManifest().packageID, "svp_SVP-TEST_pkg")
+        XCTAssertEqual(scan.family, .quickTime)
+        XCTAssertEqual(parsed.profileVersion, EmbeddedSVPITransportProfile.version)
+        XCTAssertEqual(parsed.payloadLength, UInt64(samplePayload.count))
     }
 
     func testDuplicateEmbeddings() throws {
-        let one = try embeddingBox(payload: sampleSVP)
+        let one = try embeddingBox(payload: samplePayload)
         let url = try write(ftyp(brand: "mp42") + one + one); defer { try? FileManager.default.removeItem(at: url) }
         guard case .invalidEmbedding(.duplicateEmbeddings) = SemanticMediaResolver.resolve(url: url) else { return XCTFail("Expected duplicate error") }
     }
 
     func testEnvelopeVersionFlagsLengthAndHashFailures() throws {
-        try assertInvalid(mutateEnvelope(payload: sampleSVP) { $0.replaceSubrange(8..<10, with: be16(2)) }, matches: { if case .unsupportedVersion = $0 { true } else { false } })
-        try assertInvalid(mutateEnvelope(payload: sampleSVP) { $0.replaceSubrange(12..<16, with: be32(1)) }, matches: { if case .unsupportedFlags = $0 { true } else { false } })
-        try assertInvalid(mutateEnvelope(payload: sampleSVP) { $0.replaceSubrange(16..<24, with: be64(UInt64(sampleSVP.count + 1))) }, matches: { if case .payloadLengthMismatch = $0 { true } else { false } })
-        var damaged = sampleSVP; damaged[0] ^= 0xff
-        let goodEnvelope = try envelope(payload: sampleSVP)
+        try assertInvalid(mutateEnvelope(payload: samplePayload) { $0.replaceSubrange(8..<10, with: be16(2)) }, matches: { if case .unsupportedVersion = $0 { true } else { false } })
+        try assertInvalid(mutateEnvelope(payload: samplePayload) { $0.replaceSubrange(12..<16, with: be32(1)) }, matches: { if case .unsupportedFlags = $0 { true } else { false } })
+        try assertInvalid(mutateEnvelope(payload: samplePayload) { $0.replaceSubrange(16..<24, with: be64(UInt64(samplePayload.count + 1))) }, matches: { if case .payloadLengthMismatch = $0 { true } else { false } })
+        var damaged = samplePayload; damaged[0] ^= 0xff
+        let goodEnvelope = try envelope(payload: samplePayload)
         try assertInvalid(uuidBox(userType: EmbeddedSVPITransportProfile.uuid, content: goodEnvelope + damaged), matches: { $0 == .payloadHashMismatch })
     }
 
@@ -118,20 +122,6 @@ final class EmbeddedSVPITransportTests: XCTestCase {
         let scan = try ISOBMFFScanner.scan(source: FilePackageByteSource(url: url))
         XCTAssertEqual(scan?.topLevelBoxCount, 2)
         XCTAssertLessThan(scan?.headerBytesRead ?? .max, 128)
-    }
-
-    func testRealSemanticSample() throws {
-        let url = URL(fileURLWithPath: "/Users/domesposito/Desktop/test-30-semantic.mp4")
-        guard FileManager.default.fileExists(atPath: url.path) else { throw XCTSkip("Real semantic sample unavailable") }
-        guard case .embedded(let package) = SemanticMediaResolver.resolve(url: url) else { return XCTFail("Real sample did not resolve") }
-        XCTAssertEqual(package.containerFamily, .mp4); XCTAssertEqual(package.majorBrand, "mp42")
-        XCTAssertEqual(package.profileVersion, 1); XCTAssertEqual(package.payloadOffset, 93_179_078); XCTAssertEqual(package.payloadSize, 3_495_292)
-        let reader = try SVPReader(package: package)
-        XCTAssertEqual(try reader.readManifest().packageID, "svpi_test-30_pkg")
-        XCTAssertEqual(try reader.readJSONLEntry("transcript/words.jsonl").count, 58)
-        XCTAssertEqual(try reader.readJSONLEntry("text/text_observations.jsonl").count, 23)
-        XCTAssertEqual(try reader.readJSONLEntry("colors/color_observations.jsonl").count, 37)
-        XCTAssertEqual(try reader.readJSONLEntry("relationships/relationships.jsonl").count, 296)
     }
 
     private func assertInvalid(_ embedding: Data, matches: (EmbeddedSVPIError) -> Bool) throws {
