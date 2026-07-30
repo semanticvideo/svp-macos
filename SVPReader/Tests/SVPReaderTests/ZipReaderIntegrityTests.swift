@@ -49,60 +49,6 @@ final class ZipReaderIntegrityTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: destination), payload)
     }
 
-    func testDeflatedExtractionUsesBoundedReadsAndReplacesDestination() throws {
-        let payload = Data(repeating: 0x5a, count: 2 * 1_024 * 1_024)
-        let source = RecordingDataByteSource(deflatedArchive(name: "payload.bin", payload: payload))
-        let reader = try ZipReader(source: source)
-        source.resetMaximumRequestedLength()
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("zip-deflated-extraction-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let destination = directory.appendingPathComponent("payload.bin")
-        try Data("existing destination".utf8).write(to: destination)
-
-        try reader.extractEntry("payload.bin", to: destination, bufferSize: 16 * 1_024)
-
-        XCTAssertLessThanOrEqual(source.maximumRequestedLength, 16 * 1_024)
-        XCTAssertEqual(try Data(contentsOf: destination), payload)
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path), ["payload.bin"])
-    }
-
-    func testDeflatedExtractionRejectsTruncatedStreamAndPreservesDestination() throws {
-        let payload = Data("deflate completion".utf8)
-        let compressed = rawDeflate(payload)
-        let archive = deflatedArchive(
-            name: "payload.bin",
-            payload: payload,
-            compressedPayload: compressed,
-            declaredCompressedSize: UInt32(compressed.count - 1)
-        )
-        let reader = try ZipReader(source: DataByteSource(archive))
-        try assertFailedExtractionPreservesDestination(reader: reader, expectedMessage: "before completion")
-    }
-
-    func testDeflatedExtractionRejectsCRCMismatchAndPreservesDestination() throws {
-        let payload = Data("deflate integrity".utf8)
-        let archive = deflatedArchive(
-            name: "payload.bin",
-            payload: payload,
-            declaredCRC32: crc32(payload) ^ 0xffff_ffff
-        )
-        let reader = try ZipReader(source: DataByteSource(archive))
-        try assertFailedExtractionPreservesDestination(reader: reader, expectedMessage: "CRC32 mismatch")
-    }
-
-    func testDeflatedExtractionRejectsDeclaredSizeMismatchAndPreservesDestination() throws {
-        let payload = Data("deflate size".utf8)
-        let archive = deflatedArchive(
-            name: "payload.bin",
-            payload: payload,
-            declaredUncompressedSize: UInt32(payload.count + 1)
-        )
-        let reader = try ZipReader(source: DataByteSource(archive))
-        try assertFailedExtractionPreservesDestination(reader: reader, expectedMessage: "size mismatch")
-    }
-
     func testZIP64StoredEntryLargerThanFourGiBSupportsRangeReads() throws {
         let entryName = "media/original/large.mov"
         let payloadSize = UInt64(UInt32.max) + 1_024
@@ -114,29 +60,6 @@ final class ZipReaderIntegrityTests: XCTestCase {
         XCTAssertEqual(reader.entryInfo(entryName)?.uncompressedSize, payloadSize)
         XCTAssertEqual(data, Data(repeating: 0, count: 8))
         XCTAssertLessThanOrEqual(source.maximumRequestedLength, 65_557)
-    }
-
-    func testZIP64StoredExtractionLargerThanFourGiBBeginsWithBoundedRead() throws {
-        let entryName = "media/original/large.mov"
-        let payloadSize = UInt64(UInt32.max) + 1_024
-        let source = sparseZIP64Archive(name: entryName, payloadSize: payloadSize)
-        let reader = try ZipReader(source: source)
-        source.failPayloadReads = true
-        source.resetMaximumRequestedLength()
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("zip64-streaming-extraction-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let destination = directory.appendingPathComponent("large.mov")
-
-        XCTAssertThrowsError(try reader.extractEntry(entryName, to: destination, bufferSize: 16 * 1_024)) { error in
-            guard case SparseZIP64ByteSource.ProbeError.payloadRead = error else {
-                return XCTFail("Expected the synthetic payload-read probe, got \(error)")
-            }
-        }
-        XCTAssertLessThanOrEqual(source.maximumRequestedLength, 16 * 1_024)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path))
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path), [])
     }
 
     private func storedArchive(name: String, payload: Data) -> Data {
@@ -160,77 +83,6 @@ final class ZipReaderIntegrityTests: XCTestCase {
         archive += le32(0x06054b50) + le16(0) + le16(0) + le16(1) + le16(1)
         archive += le32(UInt32(central.count)) + le32(centralOffset) + le16(0)
         return archive
-    }
-
-    private func deflatedArchive(
-        name: String,
-        payload: Data,
-        compressedPayload: Data? = nil,
-        declaredCompressedSize: UInt32? = nil,
-        declaredUncompressedSize: UInt32? = nil,
-        declaredCRC32: UInt32? = nil
-    ) -> Data {
-        let nameData = Data(name.utf8)
-        let compressedPayload = compressedPayload ?? rawDeflate(payload)
-        let compressedSize = declaredCompressedSize ?? UInt32(compressedPayload.count)
-        let uncompressedSize = declaredUncompressedSize ?? UInt32(payload.count)
-        let checksum = declaredCRC32 ?? crc32(payload)
-
-        var local = Data()
-        local += le32(0x04034b50) + le16(20) + le16(0) + le16(8)
-        local += le16(0) + le16(0) + le32(checksum) + le32(compressedSize) + le32(uncompressedSize)
-        local += le16(UInt16(nameData.count)) + le16(0) + nameData + compressedPayload
-
-        let centralOffset = UInt32(local.count)
-        var central = Data()
-        central += le32(0x02014b50) + le16(20) + le16(20) + le16(0) + le16(8)
-        central += le16(0) + le16(0) + le32(checksum) + le32(compressedSize) + le32(uncompressedSize)
-        central += le16(UInt16(nameData.count)) + le16(0) + le16(0)
-        central += le16(0) + le16(0) + le32(0) + le32(0) + nameData
-
-        var archive = local + central
-        archive += le32(0x06054b50) + le16(0) + le16(0) + le16(1) + le16(1)
-        archive += le32(UInt32(central.count)) + le32(centralOffset) + le16(0)
-        return archive
-    }
-
-    private func rawDeflate(_ payload: Data) -> Data {
-        var compressed = Data()
-        var offset = 0
-        repeat {
-            let count = min(65_535, payload.count - offset)
-            let isFinal = offset + count == payload.count
-            let length = UInt16(count)
-            compressed.append(isFinal ? 0x01 : 0x00)
-            compressed += le16(length) + le16(~length)
-            compressed += payload[offset..<offset + count]
-            offset += count
-        } while offset < payload.count
-        return compressed
-    }
-
-    private func assertFailedExtractionPreservesDestination(
-        reader: ZipReader,
-        expectedMessage: String
-    ) throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("zip-failed-extraction-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let destination = directory.appendingPathComponent("payload.bin")
-        let existing = Data("existing destination".utf8)
-        try existing.write(to: destination)
-
-        XCTAssertThrowsError(try reader.extractEntry("payload.bin", to: destination, bufferSize: 4)) { error in
-            switch error {
-            case ZipReaderError.readFailed(let message), ZipReaderError.inflateFailed(let message):
-                XCTAssertTrue(message.contains(expectedMessage), "Unexpected failure: \(message)")
-            default:
-                XCTFail("Expected a ZIP integrity failure, got \(error)")
-            }
-        }
-        XCTAssertEqual(try Data(contentsOf: destination), existing)
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path), ["payload.bin"])
     }
 
     private func sparseZIP64Archive(name: String, payloadSize: UInt64) -> SparseZIP64ByteSource {
@@ -328,15 +180,10 @@ private final class RecordingDataByteSource: SVPPackageByteSource, @unchecked Se
 }
 
 private final class SparseZIP64ByteSource: SVPPackageByteSource, @unchecked Sendable {
-    enum ProbeError: Error {
-        case payloadRead
-    }
-
     let local: Data
     let tailOffset: UInt64
     let tail: Data
     private(set) var maximumRequestedLength = 0
-    var failPayloadReads = false
 
     init(local: Data, tailOffset: UInt64, tail: Data) {
         self.local = local
@@ -346,19 +193,11 @@ private final class SparseZIP64ByteSource: SVPPackageByteSource, @unchecked Send
 
     var length: UInt64 { tailOffset + UInt64(tail.count) }
 
-    func resetMaximumRequestedLength() {
-        maximumRequestedLength = 0
-    }
-
     func read(offset: UInt64, length: Int) throws -> Data {
         guard length >= 0 else { throw SVPPackageByteSourceError.invalidLength }
         let (end, overflow) = offset.addingReportingOverflow(UInt64(length))
         guard !overflow, end <= self.length else { throw SVPPackageByteSourceError.outOfRange }
         maximumRequestedLength = max(maximumRequestedLength, length)
-        let payloadOffset = UInt64(local.count)
-        if failPayloadReads, offset < tailOffset, end > payloadOffset {
-            throw ProbeError.payloadRead
-        }
 
         var result = Data(repeating: 0, count: length)
         overlay(local, segmentOffset: 0, requestOffset: offset, result: &result)

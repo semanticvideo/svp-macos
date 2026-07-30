@@ -93,8 +93,8 @@ final class ZipReader {
             throw ZipReaderError.readFailed("ZIP extraction buffer size must be greater than zero")
         }
 
-        let temporaryURL = destinationURL.deletingLastPathComponent()
-            .appendingPathComponent(".\(destinationURL.lastPathComponent).\(UUID().uuidString).tmp")
+        let temporaryURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("svp-extraction-\(UUID().uuidString).tmp")
         defer { try? FileManager.default.removeItem(at: temporaryURL) }
 
         try extractEntryData(entry: entry, to: temporaryURL, bufferSize: bufferSize)
@@ -157,33 +157,31 @@ final class ZipReader {
         guard let outputHandle = try? FileHandle(forWritingTo: destinationURL) else {
             throw ZipReaderError.readFailed("Cannot open destination: \(destinationURL.path)")
         }
-        do {
-            var integrity = ZipEntryIntegrity(entry: entry)
-            if entry.compressionMethod == 0 {
-                try copyStoredEntry(
-                    offset: dataOffset,
-                    byteCount: entry.uncompressedSize,
-                    to: outputHandle,
-                    bufferSize: bufferSize,
-                    integrity: &integrity
-                )
-                try integrity.validate()
-            } else if entry.compressionMethod == 8 {
-                let streamEnded = try inflateEntry(
-                    offset: dataOffset,
-                    compressedByteCount: entry.compressedSize,
-                    to: outputHandle,
-                    bufferSize: bufferSize,
-                    integrity: &integrity
-                )
-                try integrity.validate(streamEnded: streamEnded)
-            } else {
-                throw ZipReaderError.readFailed("Unsupported compression method: \(entry.compressionMethod)")
-            }
-            try outputHandle.close()
-        } catch {
+        defer {
             try? outputHandle.close()
-            throw error
+        }
+
+        var integrity = ZipEntryIntegrity(entry: entry)
+        if entry.compressionMethod == 0 {
+            try copyStoredEntry(
+                offset: dataOffset,
+                byteCount: entry.uncompressedSize,
+                to: outputHandle,
+                bufferSize: bufferSize,
+                integrity: &integrity
+            )
+            try integrity.validate()
+        } else if entry.compressionMethod == 8 {
+            let streamEnded = try inflateEntry(
+                offset: dataOffset,
+                compressedByteCount: entry.compressedSize,
+                to: outputHandle,
+                bufferSize: bufferSize,
+                integrity: &integrity
+            )
+            try integrity.validate(streamEnded: streamEnded)
+        } else {
+            throw ZipReaderError.readFailed("Unsupported compression method: \(entry.compressionMethod)")
         }
     }
 
