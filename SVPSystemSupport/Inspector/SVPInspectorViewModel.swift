@@ -78,7 +78,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = overviewState else { return }
         overviewState = .loading
         load(
-            sectionName: "overview",
             work: { try SVPInspectorDataLoader.loadOverview(from: self.fileURL, package: self.package) },
             assign: { self.overviewState = $0 }
         )
@@ -88,7 +87,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = transcriptState else { return }
         transcriptState = .loading
         load(
-            sectionName: "transcript",
             work: { try SVPInspectorDataLoader.loadTranscript(from: self.fileURL, package: self.package) },
             assign: { self.transcriptState = $0 }
         )
@@ -98,7 +96,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = textState else { return }
         textState = .loading
         load(
-            sectionName: "text",
             work: { try SVPInspectorDataLoader.loadText(from: self.fileURL, package: self.package) },
             assign: { self.textState = $0 }
         )
@@ -108,7 +105,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = evidenceCropsState else { return }
         evidenceCropsState = .loading
         load(
-            sectionName: "evidence crops",
             work: { try SVPInspectorDataLoader.loadEvidenceCrops(from: self.fileURL, package: self.package) },
             assign: { self.evidenceCropsState = $0 }
         )
@@ -118,7 +114,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = colorsState else { return }
         colorsState = .loading
         load(
-            sectionName: "colors",
             work: { try SVPInspectorDataLoader.loadColors(from: self.fileURL, package: self.package) },
             assign: { self.colorsState = $0 }
         )
@@ -128,7 +123,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = timelineState else { return }
         timelineState = .loading
         load(
-            sectionName: "timeline",
             work: { try SVPInspectorDataLoader.loadTimeline(from: self.fileURL, package: self.package) },
             assign: { self.timelineState = $0 }
         )
@@ -138,7 +132,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = entitiesState else { return }
         entitiesState = .loading
         load(
-            sectionName: "entities",
             work: { try SVPInspectorDataLoader.loadEntities(from: self.fileURL, package: self.package) },
             assign: { self.entitiesState = $0 }
         )
@@ -148,7 +141,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = relationshipsState else { return }
         relationshipsState = .loading
         load(
-            sectionName: "relationships",
             work: { try SVPInspectorDataLoader.loadRelationships(from: self.fileURL, package: self.package) },
             assign: { self.relationshipsState = $0 }
         )
@@ -158,7 +150,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = provenanceState else { return }
         provenanceState = .loading
         load(
-            sectionName: "provenance",
             work: { try SVPInspectorDataLoader.loadProvenance(from: self.fileURL, package: self.package) },
             assign: { self.provenanceState = $0 }
         )
@@ -168,7 +159,6 @@ final class SVPInspectorViewModel: ObservableObject {
         guard case .idle = indexState else { return }
         indexState = .loading
         load(
-            sectionName: "index",
             work: { try SVPInspectorDataLoader.loadIndex(from: self.fileURL, package: self.package) },
             assign: { self.indexState = $0 }
         )
@@ -226,7 +216,6 @@ final class SVPInspectorViewModel: ObservableObject {
     }
 
     private func load<Value>(
-        sectionName: String,
         work: @escaping () throws -> Value,
         assign: @escaping (SVPInspectorLoadState<Value>) -> Void
     ) {
@@ -235,7 +224,6 @@ final class SVPInspectorViewModel: ObservableObject {
             do {
                 result = .loaded(try work())
             } catch {
-                SVPAppLogger.log("Inspector \(sectionName) load failed: \(error)")
                 result = .failed(String(describing: error))
             }
 

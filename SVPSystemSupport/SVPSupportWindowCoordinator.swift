@@ -9,13 +9,13 @@ final class SVPSupportWindowCoordinator {
 
     init() {
         transcriptPresenter.onClose = { [weak self] in
-            self?.handleSupportWindowClosed(reason: "transcript")
+            self?.handleSupportWindowClosed()
         }
     }
 
     func showTranscript(from svpURL: URL) {
         let videoTitle = svpURL.deletingPathExtension().lastPathComponent
-        prepareForSupportWindowPresentation(reason: "transcript")
+        prepareForSupportWindowPresentation()
         let window = transcriptPresenter.presentLoading(title: "\(videoTitle) Transcript")
 
         DispatchQueue.global(qos: .userInitiated).async { [transcriptLoader, weak self, weak window] in
@@ -33,7 +33,6 @@ final class SVPSupportWindowCoordinator {
                 case .success(let transcript):
                     self.transcriptPresenter.completeLoading(window: window, text: transcript)
                 case .failure(let error):
-                    SVPAppLogger.log("App transcript failed: \(error)")
                     self.transcriptPresenter.close(window: window)
                     let alert = NSAlert()
                     alert.messageText = "Failed to show transcript"
@@ -54,7 +53,7 @@ final class SVPSupportWindowCoordinator {
 
     func showEmbeddedTranscript(package: SVPPackageDescriptor) {
         let title = package.mediaURL.deletingPathExtension().lastPathComponent
-        prepareForSupportWindowPresentation(reason: "embedded transcript")
+        prepareForSupportWindowPresentation()
         let window = transcriptPresenter.presentLoading(title: "\(title) Transcript")
         DispatchQueue.global(qos: .userInitiated).async { [transcriptLoader, weak self, weak window] in
             let result = Result { try transcriptLoader.loadTranscript(from: package) }
@@ -75,76 +74,54 @@ final class SVPSupportWindowCoordinator {
     }
 
     private func showInspector(for url: URL, formatLabel: String, package: SVPPackageDescriptor? = nil) {
-        SVPAppLogger.log("App opening inspector for: \(url.path)")
-
         let viewModel = SVPInspectorViewModel(fileURL: url, formatLabel: formatLabel, package: package)
         let windowController = SVPInspectorWindowController(viewModel: viewModel)
         windowController.onClose = { [weak self, weak windowController] in
             guard let windowController else { return }
             self?.inspectorWindowControllers.removeAll { $0 === windowController }
-            self?.handleSupportWindowClosed(reason: "inspector")
+            self?.handleSupportWindowClosed()
         }
         inspectorWindowControllers.append(windowController)
-        prepareForSupportWindowPresentation(reason: "\(formatLabel) inspector")
+        prepareForSupportWindowPresentation()
         windowController.present()
     }
 
-    private func prepareForSupportWindowPresentation(reason: String) {
+    private func prepareForSupportWindowPresentation() {
         let currentPolicy = NSApp.activationPolicy()
         if currentPolicy != .regular {
-            SVPAppLogger.log("Promoting app activation policy for \(reason): \(activationPolicyName(currentPolicy)) -> regular")
             NSApp.setActivationPolicy(.regular)
-        } else {
-            SVPAppLogger.log("App activation policy already regular for \(reason)")
         }
 
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func handleSupportWindowClosed(reason: String) {
+    private func handleSupportWindowClosed() {
         DispatchQueue.main.async { [weak self] in
-            self?.terminateIfNoSupportWindowsRemain(reason: reason)
+            self?.terminateIfNoSupportWindowsRemain()
         }
     }
 
-    private func terminateIfNoSupportWindowsRemain(reason: String) {
+    private func terminateIfNoSupportWindowsRemain() {
         let inspectorCount = inspectorWindowControllers.count
         let transcriptCount = transcriptPresenter.windowCount
 
         guard inspectorCount == 0, transcriptCount == 0 else { return }
-        demoteAppAfterSupportWindowsClose(reason: reason)
+        demoteAppAfterSupportWindowsClose()
 
         guard !isRunningUnderDebugger else {
-            SVPAppLogger.log("No inspector or transcript windows remain; debugger attached, skipping app termination")
             return
         }
 
-        SVPAppLogger.log("No inspector or transcript windows remain; terminating app")
         NSApp.terminate(nil)
     }
 
-    private func demoteAppAfterSupportWindowsClose(reason: String) {
+    private func demoteAppAfterSupportWindowsClose() {
         let currentPolicy = NSApp.activationPolicy()
         guard currentPolicy == .regular else {
-            SVPAppLogger.log("App activation policy already demoted after \(reason): \(activationPolicyName(currentPolicy))")
             return
         }
 
-        SVPAppLogger.log("Demoting app activation policy after \(reason): regular -> accessory")
         NSApp.setActivationPolicy(.accessory)
-    }
-
-    private func activationPolicyName(_ policy: NSApplication.ActivationPolicy) -> String {
-        switch policy {
-        case .regular:
-            return "regular"
-        case .accessory:
-            return "accessory"
-        case .prohibited:
-            return "prohibited"
-        @unknown default:
-            return "unknown"
-        }
     }
 
     private var isRunningUnderDebugger: Bool {

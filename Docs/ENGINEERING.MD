@@ -96,13 +96,7 @@ The Inspector uses `NSSplitViewController` as the container, with SwiftUI views 
 
 **Why:** SwiftUI's `Table` view and `List` with selection binding are well-suited for the Inspector's sortable tables and sidebar navigation. But Quick Look panel integration (`QLPreviewPanel`) requires responder chain participation and `acceptsPreviewPanelControl` — this is much easier in AppKit where you have direct control over the responder chain. The hybrid approach gets the best of both: SwiftUI for layout and tables, AppKit for window management and Quick Look.
 
-### 11. App Group Container for Logging
-
-`SVPAppLogger` writes log lines to `svp_extract.log` inside the shared app group container (`group.com.cueit.svp-system-support`). The MediaExtension target uses `os.Logger` with the same subsystem. Quick Look uses `fputs` to `stderr`.
-
-**Why:** The app group container is the only shared writable location between the host app and its extensions (Quick Look runs in a separate process, MediaExtension in another). Writing to the app group container lets the host app's logs be inspected from one place. MediaExtension uses `os.Logger` because it's the recommended approach for system extensions and integrates with Console.app. Quick Look extensions have more restricted sandboxing, so `stderr` is the most reliable output channel.
-
-### 12. Post-Install Launch Services Registration
+### 11. Post-Install Launch Services Registration
 
 The `SCRIPTS/POSTINSTALL` script runs `lsregister` for the app and both extensions after the `.pkg` installs. It registers the app at `/Applications/SVPSystemSupport.app` and each `.appex` inside the `PlugIns` directory.
 
@@ -189,8 +183,6 @@ The post-install script registers all three bundles with Launch Services using `
 
 | Target | Key Entitlements |
 | --- | --- |
-| SVPSystemSupport.app | `mediaextension.formatreader`, app group, user-selected read-write |
-| SVPPreview.appex | App group only |
-| SVPMediaReader.appex | `mediaextension.formatreader`, app sandbox, app group, user-selected read-only |
-
-The app group (`group.com.cueit.svp-system-support`) is shared across all three targets, enabling the file-based logging path to work from any process.
+| SVPSystemSupport.app | `mediaextension.formatreader`, user-selected read-write |
+| SVPPreview.appex | None |
+| SVPMediaReader.appex | `mediaextension.formatreader`, app sandbox, user-selected read-only |

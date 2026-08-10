@@ -21,17 +21,14 @@ final class EmbeddedSVPIExtractor {
         NSApp.activate(ignoringOtherApps: true)
         let response = savePanel.runModal()
         guard response == .OK, let destinationURL = savePanel.url else {
-            SVPAppLogger.log("App embedded SVPI save panel cancelled")
             return .cancelled
         }
 
         do {
             try Self.write(package: package, to: destinationURL)
-            SVPAppLogger.log("App wrote extracted SVPI to: \(destinationURL.path)")
             NSWorkspace.shared.activateFileViewerSelecting([destinationURL])
             return .extracted
         } catch {
-            SVPAppLogger.log("App embedded SVPI extraction failed: \(error)")
             let alert = NSAlert()
             alert.messageText = "Failed to extract SVPI"
             alert.informativeText = String(describing: error)

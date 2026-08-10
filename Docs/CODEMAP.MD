@@ -60,7 +60,6 @@ Registers:
 ### `SVPSystemSupport/SVPSystemSupport.entitlements`
 
 - `com.apple.developer.mediaextension.formatreader` (true)
-- App group `group.com.cueit.svp-system-support`
 - User-selected read-write file access
 
 ### App Entry & Delegate
@@ -74,7 +73,6 @@ Registers:
 
 | File | Responsibility |
 | --- | --- |
-| `SVPAPPLOGGER.SWIFT` | `SVPAppLogger` enum. Writes log lines to `svp_extract.log` inside the shared app group container (`group.com.cueit.svp-system-support`). |
 | `SVPPASTEBOARDREADER.SWIFT` | `SVPPasteboardReader` enum. Extracts the first `.svp` file URL from an `NSPasteboard` using UTType conformance filtering. |
 | `SVPVIDEOEXTRACTOR.SWIFT` | `SVPVideoExtractor` class. Validates SVP, locates primary media, presents `NSSavePanel`, writes extracted media to chosen destination, reveals in Finder. Returns outcome enum (`.extracted`, `.cancelled`, `.failed`). |
 | `SVPTRANSCRIPTLOADER.SWIFT` | `SVPTranscriptLoader` class. Wraps `SVPReader.readTranscriptText()` — validates SVP and reads `transcript/words.jsonl`, joining word `text` fields into a single string. |
@@ -108,10 +106,6 @@ Quick Look preview extension at `SVPPreview/`. Bundle product: `SVPPreview.appex
 
 Declares `NSExtensionPrincipalClass` as `$(PRODUCT_MODULE_NAME).PreviewProvider`. Supports content type `com.semanticvideo.svp`. Searchable items disabled.
 
-### `SVPPreview/SVPPreview.entitlements`
-
-App group `group.com.cueit.svp-system-support` only.
-
 | File | Responsibility |
 | --- | --- |
 | `PREVIEWPROVIDER.SWIFT` | `PreviewProvider` (NSViewController, QLPreviewingController). Prepares preview by validating SVP, locating primary media, setting up a custom `AVAssetResourceLoaderDelegate` for byte-range playback without materializing to disk. Uses `AVPlayerView` for video playback. Auto-plays in Quick Look popup, pauses when hidden. Adjusts controls style (floating vs inline) based on window level. Includes extensive playback diagnostics logging. `SVPPreviewContainerView` maintains aspect ratio. |
@@ -131,7 +125,6 @@ Declares `EXPrincipalClass` as `SVPFormatReaderExtension`. Supports `com.semanti
 
 - `com.apple.developer.mediaextension.formatreader` (true)
 - App sandbox enabled
-- App group `group.com.cueit.svp-system-support`
 - User-selected read-only file access
 
 ### `SVPMediaReader/SVPMediaReader-Bridging-Header.h`

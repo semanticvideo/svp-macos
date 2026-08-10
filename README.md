@@ -289,12 +289,6 @@ Useful log categories include:
 | `SVPReader` | Shared package reader. |
 | `MediaExtension` | MediaExtension and sample cursor path. |
 
-The host app also writes extraction logs to the app group container file named:
-
-```text
-svp_extract.log
-```
-
 ## Test
 
 Run the `SVPReader` package tests from the package directory:
