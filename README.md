@@ -298,14 +298,6 @@ cd SVPReader
 swift test --scratch-path /tmp/SVPReader-test-clean
 ```
 
-Important: the current package tests reference a local sample SVP file at:
-
-```text
-/Users/domesposito/Projects/svp/build/local-code-svp/CODE.svp
-```
-
-Those tests need that fixture to exist at that path unless the tests are updated to create or locate their own fixture.
-
 The app and UI test targets currently contain default template tests.
 
 ## Creating a Minimal Local SVP Fixture
