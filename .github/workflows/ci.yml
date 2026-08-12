@@ -1,0 +1,55 @@
+name: Build and Verify
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-verify:
+    name: Build and Verify
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      SWIFT_SCRATCH_PATH: /tmp/SVPReader-test-${{ github.run_id }}
+      XCODE_DERIVED_DATA_PATH: /tmp/SVPSystemSupport-derived-data-${{ github.run_id }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Report toolchain
+        run: |
+          xcodebuild -version
+          xcrun swift --version
+
+      - name: Test SVPReader
+        working-directory: Packages/SVPReader
+        run: xcrun swift test --scratch-path "$SWIFT_SCRATCH_PATH"
+
+      - name: Test SVPSystemSupport
+        run: |
+          xcodebuild \
+            -project SVPSystemSupport.xcodeproj \
+            -scheme SVPSystemSupport \
+            -configuration Debug \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath "$XCODE_DERIVED_DATA_PATH" \
+            CODE_SIGNING_ALLOWED=NO \
+            test
+
+      - name: Clean temporary build artifacts
+        if: always()
+        run: rm -rf "$SWIFT_SCRATCH_PATH" "$XCODE_DERIVED_DATA_PATH"

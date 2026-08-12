@@ -875,7 +875,7 @@
 /* Begin XCLocalSwiftPackageReference section */
 		8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = SVPReader;
+			relativePath = Packages/SVPReader;
 		};
 /* End XCLocalSwiftPackageReference section */
 

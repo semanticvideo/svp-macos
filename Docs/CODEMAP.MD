@@ -18,20 +18,20 @@ A file-by-file map of the repository, grouped by target/module.
 
 ## SVPReader (Swift Package)
 
-Local Swift package at `SVPReader/`. Declared in `PACKAGE.SWIFT` with `swift-tools-version: 5.9`, platform `macOS 14+`. No external dependencies.
+Local Swift package at `Packages/SVPReader/`. Declared in `PACKAGE.SWIFT` with `swift-tools-version: 5.9`, platform `macOS 14+`. No external dependencies.
 
-### `SVPReader/Package.swift`
+### `Packages/SVPReader/Package.swift`
 
 Defines two targets (`CZlib`, `SVPReader`) and one test target (`SVPReaderTests`). `SVPReader` depends on `CZlib`. `CZlib` links against system `zlib`.
 
-### `SVPReader/Sources/CZlib/`
+### `Packages/SVPReader/Sources/CZlib/`
 
 | File | Responsibility |
 | --- | --- |
 | `CZLIB.C` | C shim around system zlib `inflate` API. Exposes `cZlib_inflate_init`, `cZlib_inflate_process`, `cZlib_inflate_end`. Uses raw deflate mode (`inflateInit2` with window bits `-15`). |
 | `INCLUDE/CZLIB.H` | Header declaring the three C functions and the opaque `cZlib_stream` type. |
 
-### `SVPReader/Sources/SVPReader/`
+### `Packages/SVPReader/Sources/SVPReader/`
 
 | File | Responsibility |
 | --- | --- |
@@ -39,7 +39,7 @@ Defines two targets (`CZlib`, `SVPReader`) and one test target (`SVPReaderTests`
 | `ZIPREADER.SWIFT` | Internal `ZipReader` class. Parses ZIP central directory from raw file bytes (no libzip dependency). Supports stored (method 0) and deflated (method 8) entries. Provides entry listing, full reads, extraction to file, byte-range reads via `pread` for stored entries, and streaming inflate. Maintains a second `FileHandle` for concurrent range reads with an `NSLock`-protected cache. |
 | `SVPERROR.SWIFT` | Public error enum (`SVPError`) with cases for every failure mode. Also defines public value types: `SVPMediaInfo` (media entry metadata), `SVPManifestInfo` (manifest fields), `SVPReadResult` (materialized media result). All `Sendable`. |
 
-### `SVPReader/Tests/SVPReaderTests/`
+### `Packages/SVPReader/Tests/SVPReaderTests/`
 
 Contains package tests. Tests reference a local SVP fixture at a hardcoded path (see README for details).
 

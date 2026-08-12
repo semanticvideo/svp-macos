@@ -12,7 +12,7 @@ The app itself is intentionally small. It mainly acts as the installed container
 | `SVPPreview/` | Quick Look preview extension for `.svp` files. |
 | `SVPMediaReader/` | MediaExtension format reader for system-level media access. |
 | `SVPSystemSupport/Inspector/` | SVP Inspector — window for browsing package contents. |
-| `SVPReader/` | Local Swift package that validates and reads SVP packages. |
+| `Packages/SVPReader/` | Local Swift package that validates and reads SVP packages. |
 | `scripts/postinstall` | Installer script that registers the app and extensions with Launch Services. |
 | `build-pkg.sh` | Release packaging script that builds the app and creates a `.pkg` installer. |
 
@@ -220,7 +220,7 @@ Inspector source files live in `SVPSystemSupport/Inspector/`:
 Build the Swift package:
 
 ```bash
-cd SVPReader
+cd Packages/SVPReader
 swift build
 ```
 
@@ -294,7 +294,7 @@ Useful log categories include:
 Run the `SVPReader` package tests from the package directory:
 
 ```bash
-cd SVPReader
+cd Packages/SVPReader
 swift test --scratch-path /tmp/SVPReader-test-clean
 ```
 
