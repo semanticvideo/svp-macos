@@ -334,7 +334,7 @@
 			mainGroup = 8E5F80452FE8B2BB008F9F09;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */,
+				8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "Packages/SVPReader" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8E5F804F2FE8B2BB008F9F09 /* Products */;
@@ -575,7 +575,7 @@
 		8E5F80702FE8B2BE008F9F09 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = SVPSupport;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = SVPSystemSupport/SVPSystemSupport.entitlements;
@@ -613,7 +613,7 @@
 		8E5F80712FE8B2BE008F9F09 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = SVPSupport;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = SVPSystemSupport/SVPSystemSupport.entitlements;
@@ -873,7 +873,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */ = {
+		8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "Packages/SVPReader" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/SVPReader;
 		};
@@ -882,17 +882,17 @@
 /* Begin XCSwiftPackageProductDependency section */
 		8E1EE6A8B86B6B4C /* SVPReader */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */;
+			package = 8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "Packages/SVPReader" */;
 			productName = SVPReader;
 		};
 		8E5F82012FE8C100008F9F09 /* SVPReader */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */;
+			package = 8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "Packages/SVPReader" */;
 			productName = SVPReader;
 		};
 		8E5F82032FE8C100008F9F09 /* SVPReader */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "SVPReader" */;
+			package = 8E5F82002FE8C100008F9F09 /* XCLocalSwiftPackageReference "Packages/SVPReader" */;
 			productName = SVPReader;
 		};
 /* End XCSwiftPackageProductDependency section */
